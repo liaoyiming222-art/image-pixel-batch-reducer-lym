@@ -28,6 +28,10 @@ function canvasBlob(canvas: HTMLCanvasElement, type: string, quality: number): P
   })
 }
 
+const OUTPUT_QUALITY = 0.9
+const MIN_SCALE = 0.02
+const MAX_ATTEMPTS = 5
+
 export async function resizeToTarget(file: File, options: ProcessOptions) {
   const decoded = await readImage(file)
   const canvas = document.createElement('canvas')
@@ -46,38 +50,30 @@ export async function resizeToTarget(file: File, options: ProcessOptions) {
     context.imageSmoothingQuality = 'high'
     context.clearRect(0, 0, width, height)
     context.drawImage(decoded.source, 0, 0, width, height)
-    const blob = await canvasBlob(canvas, file.type, options.quality)
+    const blob = await canvasBlob(canvas, file.type, OUTPUT_QUALITY)
     return { blob, width, height, scale }
   }
 
   try {
-    // Estimate a useful starting point from pixel-area ratio, then binary-search
-    // for the largest dimensions that remain below the requested byte target.
-    let low = 0.02
-    let high = Math.min(0.99, Math.sqrt(options.targetBytes / file.size) * 1.08)
-    high = Math.max(high, low)
-    let best: Awaited<ReturnType<typeof encode>> | undefined
-    let attempt = 0
+    // File size generally follows pixel area. Start close to the expected scale,
+    // then correct from the actual encoded size. This normally needs 1–3 encodes
+    // instead of a fixed 11-pass binary search.
+    let scale = Math.min(0.99, Math.max(MIN_SCALE, Math.sqrt(options.targetBytes / file.size) * 0.92))
 
-    const smallest = await encode(low)
-    if (smallest.blob.size > options.targetBytes) {
-      throw new Error('即使缩至最小尺寸仍无法达到目标大小，请提高目标大小')
-    }
-    best = smallest
-
-    for (let i = 0; i < 10; i += 1) {
-      attempt += 1
-      const scale = (low + high) / 2
+    for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt += 1) {
       const result = await encode(scale)
-      options.onProgress?.(10 + Math.round((attempt / 10) * 85))
-      if (result.blob.size <= options.targetBytes) {
-        best = result
-        low = scale
-      } else {
-        high = scale
-      }
+      options.onProgress?.(10 + Math.round((attempt / MAX_ATTEMPTS) * 85))
+      if (result.blob.size <= options.targetBytes) return result
+
+      const correction = Math.sqrt(options.targetBytes / result.blob.size) * 0.9
+      const nextScale = Math.max(MIN_SCALE, scale * Math.min(0.9, correction))
+      if (nextScale === scale || scale === MIN_SCALE) break
+      scale = nextScale
     }
-    return best
+
+    const smallest = await encode(MIN_SCALE)
+    if (smallest.blob.size <= options.targetBytes) return smallest
+    throw new Error('即使缩至最小尺寸仍无法达到目标大小，请提高目标大小')
   } finally {
     canvas.width = 1
     canvas.height = 1

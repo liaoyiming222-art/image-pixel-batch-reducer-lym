@@ -53,7 +53,6 @@ export default function App() {
   const [mode, setMode] = useState<'over' | 'all'>('over')
   const [limitMB, setLimitMB] = useState(10)
   const [targetMB, setTargetMB] = useState(8)
-  const [quality, setQuality] = useState(0.9)
   const [dragging, setDragging] = useState(false)
   const [busy, setBusy] = useState(false)
   const [message, setMessage] = useState('')
@@ -117,7 +116,7 @@ export default function App() {
     try {
       if (task.resultUrl) URL.revokeObjectURL(task.resultUrl)
       const result = await resizeToTarget(task.file, {
-        targetBytes: targetMB * MB, quality,
+        targetBytes: targetMB * MB,
         onProgress: progress => patchTask(task.id, { progress }),
       })
       patchTask(task.id, {
@@ -200,9 +199,8 @@ export default function App() {
           </div></div>
           <div className="field"><label htmlFor="limit">平台限制</label><div className="input-unit"><input id="limit" type="number" min="0.1" step="0.1" value={limitMB} onChange={e => setLimitMB(+e.target.value)} /><span>MB</span></div></div>
           <div className="field"><label htmlFor="target">目标大小</label><div className="input-unit"><input id="target" type="number" min="0.1" step="0.1" value={targetMB} onChange={e => setTargetMB(+e.target.value)} /><span>MB</span></div></div>
-          <div className="field quality"><label htmlFor="quality">输出质量 <b>{quality.toFixed(2)}</b></label><input id="quality" type="range" min="0.5" max="1" step="0.01" value={quality} onChange={e => setQuality(+e.target.value)} /></div>
         </div>
-        <p className="hint">优先降低像素尺寸并保持原始宽高比。PNG 将保留 PNG 格式及透明背景。</p>
+        <p className="hint">优先降低像素尺寸并保持原始宽高比，内部使用高质量编码。PNG 将保留 PNG 格式及透明背景。</p>
       </section>
       <section className="tasks card">
         <div className="tasks-head"><div className="section-title"><ImagePlus size={19} /><h2>图片任务</h2><span className="count">{tasks.length}</span></div>{tasks.length > 0 && <button className="text-danger" disabled={busy} onClick={clear}><Trash2 size={16} />清空全部</button>}</div>

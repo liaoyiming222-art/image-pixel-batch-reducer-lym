@@ -2,6 +2,10 @@
   padding: 22px;
 }
 
+.setting-grid {
+  grid-template-columns: 1.65fr 0.7fr 0.7fr;
+}
+
 .upload-actions {
   display: flex;
   gap: 9px;
@@ -40,6 +44,9 @@
 }
 
 @media (max-width: 560px) {
+  .setting-grid {
+    grid-template-columns: 1fr;
+  }
   .upload-actions {
     width: 100%;
     flex-direction: column;
@@ -47,5 +54,15 @@
 
   .upload-actions button {
     justify-content: center;
+  }
+}
+
+@media (min-width: 561px) and (max-width: 850px) {
+  .setting-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .mode-field {
+    grid-column: 1 / -1;
   }
 }

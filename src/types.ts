@@ -22,6 +22,5 @@ export interface ImageTask {
 
 export interface ProcessOptions {
   targetBytes: number
-  quality: number
   onProgress?: (progress: number) => void
 }
