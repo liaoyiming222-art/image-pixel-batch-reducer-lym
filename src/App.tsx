@@ -1,12 +1,50 @@
 import { useEffect, useRef, useState } from 'react'
 import JSZip from 'jszip'
-import { Archive, CheckCircle2, Download, ImagePlus, Lock, Play, RotateCcw, Settings2, Trash2, XCircle } from 'lucide-react'
+import { Archive, CheckCircle2, Download, FolderOpen, ImagePlus, Lock, Play, RotateCcw, Settings2, Trash2, XCircle } from 'lucide-react'
 import { readImage, resizeToTarget } from './imageProcessor'
 import type { ImageTask, TaskStatus } from './types'
 import { acceptedTypes, aspectRatio, formatBytes, MB, outputName } from './utils'
 
 const labels: Record<TaskStatus, string> = {
   pending: '待处理', processing: '处理中', done: '处理完成', skipped: '无需处理', error: '处理失败',
+}
+
+interface DroppedEntry {
+  isFile: boolean
+  isDirectory: boolean
+  name: string
+}
+
+interface DroppedFileEntry extends DroppedEntry {
+  file: (success: (file: File) => void, error?: (error: DOMException) => void) => void
+}
+
+interface DroppedDirectoryEntry extends DroppedEntry {
+  createReader: () => { readEntries: (success: (entries: DroppedEntry[]) => void, error?: (error: DOMException) => void) => void }
+}
+
+async function filesFromEntry(entry: DroppedEntry, parentPath = ''): Promise<File[]> {
+  const path = parentPath ? `${parentPath}/${entry.name}` : entry.name
+  if (entry.isFile) {
+    const file = await new Promise<File>((resolve, reject) => (entry as DroppedFileEntry).file(resolve, reject))
+    Object.defineProperty(file, 'webkitRelativePath', { value: path, configurable: true })
+    return [file]
+  }
+  if (!entry.isDirectory) return []
+  const reader = (entry as DroppedDirectoryEntry).createReader()
+  const children: DroppedEntry[] = []
+  while (true) {
+    const batch = await new Promise<DroppedEntry[]>((resolve, reject) => reader.readEntries(resolve, reject))
+    if (!batch.length) break
+    children.push(...batch)
+  }
+  return (await Promise.all(children.map(child => filesFromEntry(child, path)))).flat()
+}
+
+async function filesFromDrop(dataTransfer: DataTransfer): Promise<File[]> {
+  const items = Array.from(dataTransfer.items)
+  const entries = items.map(item => (item as DataTransferItem & { webkitGetAsEntry?: () => DroppedEntry | null }).webkitGetAsEntry?.()).filter(Boolean) as DroppedEntry[]
+  return entries.length ? (await Promise.all(entries.map(entry => filesFromEntry(entry)))).flat() : Array.from(dataTransfer.files)
 }
 
 export default function App() {
@@ -20,6 +58,7 @@ export default function App() {
   const [busy, setBusy] = useState(false)
   const [message, setMessage] = useState('')
   const inputRef = useRef<HTMLInputElement>(null)
+  const folderInputRef = useRef<HTMLInputElement>(null)
   useEffect(() => { tasksRef.current = tasks }, [tasks])
   useEffect(() => () => tasksRef.current.forEach(task => { URL.revokeObjectURL(task.previewUrl); if (task.resultUrl) URL.revokeObjectURL(task.resultUrl) }), [])
 
@@ -29,21 +68,44 @@ export default function App() {
     setMessage('')
     const files = Array.from(list)
     const invalid = files.filter(file => !acceptedTypes.includes(file.type))
-    if (invalid.length) setMessage(`已忽略 ${invalid.length} 个不支持的文件，仅支持 JPG、PNG 和 WebP。`)
-    for (const file of files.filter(file => acceptedTypes.includes(file.type))) {
+    const existingKeys = new Set(tasksRef.current.map(task => `${task.relativePath || task.name}|${task.size}|${task.file.lastModified}`))
+    const supported = files.filter(file => acceptedTypes.includes(file.type))
+    const unique = supported.filter(file => {
+      const key = `${file.webkitRelativePath || file.name}|${file.size}|${file.lastModified}`
+      if (existingKeys.has(key)) return false
+      existingKeys.add(key)
+      return true
+    })
+    const duplicateCount = supported.length - unique.length
+    const imported: ImageTask[] = []
+    const errors: string[] = []
+    for (const file of unique) {
       try {
         const decoded = await readImage(file)
         const task: ImageTask = {
           id: `${Date.now()}-${crypto.randomUUID()}`, file, name: file.name,
+          relativePath: file.webkitRelativePath || undefined,
           format: file.type.split('/')[1].replace('jpeg', 'JPG').toUpperCase(), size: file.size,
           width: decoded.width, height: decoded.height, ratio: aspectRatio(decoded.width, decoded.height),
           previewUrl: URL.createObjectURL(file), status: 'pending', progress: 0,
         }
         decoded.close()
-        setTasks(current => [...current, task])
-      } catch { setMessage(`无法读取“${file.name}”，文件可能已损坏。`) }
+        imported.push(task)
+      } catch { errors.push(file.name) }
     }
+    if (imported.length) setTasks(current => [...current, ...imported])
+    const notices = []
+    if (invalid.length) notices.push(`已忽略 ${invalid.length} 个不支持的文件`)
+    if (duplicateCount) notices.push(`已跳过 ${duplicateCount} 个重复文件`)
+    if (errors.length) notices.push(`${errors.length} 个图片无法读取`)
+    if (notices.length) setMessage(`${notices.join('；')}。`)
     if (inputRef.current) inputRef.current.value = ''
+    if (folderInputRef.current) folderInputRef.current.value = ''
+  }
+
+  const handleDrop = async (dataTransfer: DataTransfer) => {
+    try { await addFiles(await filesFromDrop(dataTransfer)) }
+    catch { setMessage('无法读取拖入的文件夹，请改用“选择图片文件夹”。') }
   }
 
   const processOne = async (task: ImageTask) => {
@@ -95,7 +157,10 @@ export default function App() {
     if (!completed.length) return
     if (completed.length === 1) { download(completed[0]); return }
     const zip = new JSZip()
-    completed.forEach(task => zip.file(outputName(task.name, task.result!.type), task.result!))
+    completed.forEach(task => {
+      const folder = task.relativePath?.split('/').slice(0, -1).join('/')
+      zip.file(folder ? `${folder}/${outputName(task.name, task.result!.type)}` : outputName(task.name, task.result!.type), task.result!)
+    })
     const blob = await zip.generateAsync({ type: 'blob', compression: 'DEFLATE' })
     const url = URL.createObjectURL(blob)
     const link = document.createElement('a')
@@ -118,10 +183,12 @@ export default function App() {
     <main>
       <section className={`dropzone ${dragging ? 'dragging' : ''}`} onClick={() => inputRef.current?.click()}
         onDragOver={event => { event.preventDefault(); setDragging(true) }} onDragLeave={() => setDragging(false)}
-        onDrop={event => { event.preventDefault(); setDragging(false); void addFiles(event.dataTransfer.files) }}>
+        onDrop={event => { event.preventDefault(); setDragging(false); void handleDrop(event.dataTransfer) }}>
         <input ref={inputRef} type="file" multiple accept=".jpg,.jpeg,.png,.webp" onChange={event => event.target.files && void addFiles(event.target.files)} />
+        <input ref={folderInputRef} type="file" multiple accept=".jpg,.jpeg,.png,.webp" {...({ webkitdirectory: '', directory: '' } as Record<string, string>)} onChange={event => event.target.files && void addFiles(event.target.files)} />
         <div className="upload-icon"><ImagePlus size={31} /></div><strong>点击选择或拖拽图片到这里</strong>
-        <span>支持 JPG、JPEG、PNG、WebP，可同时导入多张</span>
+        <span>支持 JPG、JPEG、PNG、WebP，也可一次拖入多个文件夹</span>
+        <div className="upload-actions"><button type="button" onClick={event => { event.stopPropagation(); inputRef.current?.click() }}><ImagePlus size={16} />选择图片</button><button type="button" onClick={event => { event.stopPropagation(); folderInputRef.current?.click() }}><FolderOpen size={16} />选择图片文件夹</button></div>
       </section>
       {message && <div className="alert"><XCircle size={17} />{message}</div>}
       <section className="settings card">
@@ -141,7 +208,7 @@ export default function App() {
         <div className="tasks-head"><div className="section-title"><ImagePlus size={19} /><h2>图片任务</h2><span className="count">{tasks.length}</span></div>{tasks.length > 0 && <button className="text-danger" disabled={busy} onClick={clear}><Trash2 size={16} />清空全部</button>}</div>
         {!tasks.length ? <div className="empty"><ImagePlus size={36} /><p>还没有添加图片</p><span>导入后将在这里显示图片信息和处理进度</span></div> :
           <div className="task-list">{tasks.map(task => <article className="task" key={task.id}>
-            <img src={task.previewUrl} alt="" /><div className="task-main"><div className="task-top"><div><h3 title={task.name}>{task.name}</h3><div className="meta"><span>{task.format}</span><span>{formatBytes(task.size)}</span><span>{task.width} × {task.height}</span><span>{task.ratio}</span></div></div><span className={`status ${task.status}`}>{labels[task.status]}</span></div>
+            <img src={task.previewUrl} alt="" /><div className="task-main"><div className="task-top"><div><h3 title={task.relativePath || task.name}>{task.name}</h3>{task.relativePath && <div className="folder-path"><FolderOpen size={12} />{task.relativePath.split('/').slice(0, -1).join(' / ')}</div>}<div className="meta"><span>{task.format}</span><span>{formatBytes(task.size)}</span><span>{task.width} × {task.height}</span><span>{task.ratio}</span></div></div><span className={`status ${task.status}`}>{labels[task.status]}</span></div>
             {task.status === 'processing' && <div className="progress"><div style={{ width: `${task.progress}%` }} /><span>{task.progress}%</span></div>}
             {task.status === 'done' && <div className="result"><CheckCircle2 size={16} /><span>新尺寸 {task.resultWidth} × {task.resultHeight}</span><span>新大小 {formatBytes(task.result!.size)}</span><b>减少 {Math.max(0, (1 - task.result!.size / task.size) * 100).toFixed(1)}%</b></div>}
             {task.status === 'skipped' && <div className="subtle">文件未超过 {limitMB} MB，无需处理</div>}

@@ -4,6 +4,7 @@ export interface ImageTask {
   id: string
   file: File
   name: string
+  relativePath?: string
   format: string
   size: number
   width: number

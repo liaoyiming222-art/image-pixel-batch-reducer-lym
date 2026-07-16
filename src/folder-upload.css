@@ -1,0 +1,51 @@
+.dropzone {
+  padding: 22px;
+}
+
+.upload-actions {
+  display: flex;
+  gap: 9px;
+  margin-top: 5px;
+}
+
+.upload-actions button {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid #cfd9e8;
+  background: #fff;
+  color: #365070;
+  border-radius: 8px;
+  padding: 7px 12px;
+  font-size: 12px;
+}
+
+.upload-actions button:hover {
+  border-color: #2563eb;
+  color: #1d4ed8;
+  background: #f7faff;
+}
+
+.folder-path {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: #7a8799;
+  font-size: 10px;
+  margin: -3px 0 7px;
+  max-width: 520px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+@media (max-width: 560px) {
+  .upload-actions {
+    width: 100%;
+    flex-direction: column;
+  }
+
+  .upload-actions button {
+    justify-content: center;
+  }
+}
