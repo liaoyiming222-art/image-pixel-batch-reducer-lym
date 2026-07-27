@@ -1,9 +1,12 @@
 import { useEffect, useRef, useState } from 'react'
 import JSZip from 'jszip'
-import { Archive, CheckCircle2, Download, FolderOpen, ImagePlus, Lock, Play, RotateCcw, Settings2, Trash2, XCircle } from 'lucide-react'
+import { Archive, BarChart3, CheckCircle2, Download, FolderOpen, FolderPlus, Home, ImageDown, ImagePlus, Lock, Play, RotateCcw, Settings2, Trash2, XCircle } from 'lucide-react'
 import { readImage, resizeToTarget } from './imageProcessor'
 import type { ImageTask, TaskStatus } from './types'
 import { acceptedTypes, aspectRatio, formatBytes, MB, outputName } from './utils'
+import { ImageInspector } from './tools/inspector/ImageInspector'
+import { FolderCreator } from './tools/folder/FolderCreator'
+import './suite.css'
 
 const labels: Record<TaskStatus, string> = {
   pending: '待处理', processing: '处理中', done: '处理完成', skipped: '无需处理', error: '处理失败',
@@ -47,7 +50,7 @@ async function filesFromDrop(dataTransfer: DataTransfer): Promise<File[]> {
   return entries.length ? (await Promise.all(entries.map(entry => filesFromEntry(entry)))).flat() : Array.from(dataTransfer.files)
 }
 
-export default function App() {
+function CompressionTool() {
   const [tasks, setTasks] = useState<ImageTask[]>([])
   const tasksRef = useRef(tasks)
   const [mode, setMode] = useState<'over' | 'all'>('over')
@@ -216,5 +219,30 @@ export default function App() {
       </section>
     </main>
     <footer><div><strong>{tasks.length} 张图片</strong><span>{completedCount ? ` · ${completedCount} 张已完成` : ' · 等待处理'}</span></div><div className="footer-actions"><button className="secondary" disabled={!completedCount || busy} onClick={() => void downloadAll()}><Archive size={18} />全部下载</button><button className="primary" disabled={!tasks.length || busy} onClick={() => void processAll()}>{busy ? <RotateCcw className="spin" size={18} /> : <Play size={18} />}{busy ? '正在处理…' : '开始处理'}</button></div></footer>
+  </div>
+}
+
+type ToolKey = 'home' | 'compress' | 'inspect' | 'folders'
+
+const tools = [
+  { key: 'compress' as const, title: '图片大小压缩', description: '批量检查文件大小，将超限图片压缩到目标大小以内', icon: ImageDown, color: 'blue' },
+  { key: 'inspect' as const, title: '图片尺寸提取', description: '批量读取像素、方向和比例，复制或导出 CSV 结果', icon: BarChart3, color: 'purple' },
+  { key: 'folders' as const, title: '文件夹批量创建', description: '解析 Excel / WPS 需求，按统一规则批量创建文件夹', icon: FolderPlus, color: 'green' },
+]
+
+function SuiteHome({ onOpen }: { onOpen: (tool: ToolKey) => void }) {
+  return <main className="suite-home"><section className="suite-hero"><span>本地 AI 工作效率工具箱</span><h1>图片与文件批处理工具</h1><p>集中完成图片压缩、尺寸分析和需求文件夹创建。所有文件均在浏览器本地处理。</p></section>
+    <section className="suite-cards">{tools.map(tool => <button key={tool.key} className={`suite-card ${tool.color}`} onClick={() => onOpen(tool.key)}><div className="suite-card-icon"><tool.icon size={28} /></div><div><h2>{tool.title}</h2><p>{tool.description}</p><span>打开工具 →</span></div></button>)}</section>
+    <section className="suite-privacy"><Lock size={18} /><div><strong>隐私优先</strong><p>图片、表格内容和文件夹信息不会上传到服务器，刷新页面后不会保留。</p></div></section>
+  </main>
+}
+
+export default function App() {
+  const [activeTool, setActiveTool] = useState<ToolKey>('home')
+  return <div className="suite-shell"><nav className="suite-nav"><button className="suite-brand" onClick={() => setActiveTool('home')}><span><ImagePlus size={20} /></span><b>AI 本地工具箱</b></button><div className="suite-nav-links"><button className={activeTool === 'home' ? 'active' : ''} onClick={() => setActiveTool('home')}><Home size={16} />首页</button>{tools.map(tool => <button key={tool.key} className={activeTool === tool.key ? 'active' : ''} onClick={() => setActiveTool(tool.key)}><tool.icon size={16} />{tool.title}</button>)}</div></nav>
+    {activeTool === 'home' && <SuiteHome onOpen={setActiveTool} />}
+    {activeTool === 'compress' && <CompressionTool />}
+    {activeTool === 'inspect' && <ImageInspector />}
+    {activeTool === 'folders' && <FolderCreator />}
   </div>
 }
