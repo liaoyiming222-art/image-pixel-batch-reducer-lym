@@ -1,1 +1,31 @@
-.folder-page{max-width:1180px;margin:0 auto;padding:24px 22px 80px}.folder-card{background:#fff;border:1px solid #e1e7ee;border-radius:12px;margin:14px 0;padding:18px}.folder-card h2{font-size:16px;margin:0 0 13px}.folder-card h2 small{font-weight:400;color:#778397;margin-left:8px}.folder-toolbar,.folder-mapping,.folder-output{display:flex;align-items:center;gap:9px;flex-wrap:wrap}.folder-toolbar button,.folder-output button{display:flex;align-items:center;gap:5px;border:1px solid #ccd5e0;background:#fff;border-radius:7px;padding:8px 12px;color:#435168}.folder-toolbar button.primary,.folder-output button.primary{background:#2563eb;color:#fff;border-color:#2563eb}.folder-toolbar span,.folder-card p{color:#778397;font-size:12px}.folder-card textarea{width:100%;min-height:120px;margin:12px 0;padding:11px;border:1px solid #ccd5e0;border-radius:7px;resize:vertical;line-height:1.55}.folder-mapping label{font-size:12px;color:#4e5b6d}.folder-mapping select{height:34px;border:1px solid #ccd5e0;border-radius:6px;background:#fff;min-width:170px}.folder-table{overflow:auto;max-height:430px;border:1px solid #e1e7ee;border-radius:8px}.folder-table table{border-collapse:collapse;width:100%;min-width:1050px;font-size:12px}.folder-table th{position:sticky;top:0;background:#f3f6f9;text-align:left;padding:9px}.folder-table td{border-top:1px solid #edf0f4;padding:8px;max-width:270px;overflow-wrap:anywhere}.folder-table input{width:100%;border:1px solid #ccd5e0;border-radius:5px;padding:7px}.folder-table .ok{color:#188044}.folder-table .bad{color:#c93636}.folder-output>div{flex:1;min-width:260px;border:1px solid #d7dee8;background:#f8fafc;border-radius:7px;padding:9px 11px;color:#647187}.folder-notice{position:fixed;bottom:85px;left:50%;transform:translateX(-50%);z-index:20;background:#26364a;color:#fff;padding:10px 16px;border-radius:8px;font-size:13px}@media(max-width:650px){.folder-page{padding:18px 12px 70px}.folder-card{padding:13px}.folder-output>div{width:100%}}
+.folder-page { position: relative; z-index: 1; max-width: 1160px; margin: 0 auto; padding: 42px 24px 90px; }
+.folder-page .tool-intro-icon { color: #28895a; background: linear-gradient(145deg, #effbf4, #e3f6eb); border-color: rgba(40,137,90,.12); box-shadow: 0 10px 25px rgba(40,137,90,.08); }
+.folder-card { margin: 14px 0; padding: 19px; background: rgba(255,255,255,.9); border: 1px solid var(--border); border-radius: 17px; box-shadow: 0 9px 32px rgba(37,45,77,.04); animation: rise-in .5s var(--ease-out) both; }
+.folder-card:nth-of-type(3) { animation-delay: .05s; }
+.folder-card:nth-of-type(4) { animation-delay: .1s; }
+.folder-card h2 { margin: 0 0 14px; font-size: 17px; letter-spacing: -.2px; }
+.folder-card h2 small { margin-left: 7px; color: var(--muted); font-size: 12px; font-weight: 400; }
+.folder-toolbar, .folder-mapping, .folder-output { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.folder-toolbar button, .folder-output button { min-height: 38px; padding: 0 13px; display: flex; align-items: center; gap: 6px; color: #576176; background: #fff; border: 1px solid var(--border); border-radius: 9px; font-size: 13px; font-weight: 600; transition: transform .2s var(--ease-out), color .2s ease, border-color .2s ease; }
+.folder-toolbar button:hover, .folder-output button:hover { transform: translateY(-1px); color: #28895a; border-color: rgba(40,137,90,.3); }
+.folder-toolbar button.primary, .folder-output button.primary { color: #fff; background: #2d9561; border-color: #2d9561; box-shadow: 0 8px 18px rgba(45,149,97,.18); }
+.folder-toolbar span, .folder-card p { color: var(--muted); font-size: 12px; }
+.folder-card textarea { width: 100%; min-height: 140px; margin: 13px 0; padding: 14px; resize: vertical; color: var(--text); background: #fafafd; border: 1px solid var(--border); border-radius: 11px; line-height: 1.65; font-size: 13px; transition: border-color .2s ease, box-shadow .2s ease; }
+.folder-card textarea:focus { outline: 0; border-color: rgba(40,137,90,.45); box-shadow: 0 0 0 3px rgba(40,137,90,.08); }
+.folder-mapping label { color: #5d6678; font-size: 12px; }
+.folder-mapping select { min-width: 180px; height: 38px; color: #505a6d; background: #fff; border: 1px solid var(--border); border-radius: 8px; font-size: 12px; }
+.folder-table { max-height: 430px; overflow: auto; border: 1px solid var(--border); border-radius: 11px; }
+.folder-table table { width: 100%; min-width: 1120px; border-collapse: collapse; font-size: 12px; }
+.folder-table th { position: sticky; z-index: 2; top: 0; padding: 10px; color: #6e7789; background: #f4f5f8; text-align: left; }
+.folder-table td { max-width: 270px; padding: 9px; overflow-wrap: anywhere; border-top: 1px solid rgba(35,45,78,.07); }
+.folder-table tbody tr { transition: background .18s ease; }
+.folder-table tbody tr:hover { background: #f9fcfa; }
+.folder-table input { width: 100%; padding: 8px 9px; color: #50596b; background: #fff; border: 1px solid var(--border); border-radius: 7px; font-size: 12px; }
+.suffix-editor { display: grid; gap: 6px; }
+.suffix-editor select { width: 100%; height: 34px; padding: 0 7px; color: #365f4c; background: #f5fbf7; border: 1px solid rgba(40,137,90,.25); border-radius: 7px; font-size: 12px; cursor: pointer; }
+.suffix-editor select:focus, .suffix-editor input:focus { outline: 0; border-color: rgba(40,137,90,.55); box-shadow: 0 0 0 3px rgba(40,137,90,.08); }
+.folder-table .ok { color: #188054; font-weight: 700; }
+.folder-table .bad { color: #c94b52; font-weight: 700; }
+.folder-output>div { flex: 1; min-width: 260px; padding: 11px 13px; color: #697386; background: #f7f8fa; border: 1px solid var(--border); border-radius: 9px; font-size: 12px; }
+.folder-notice { position: fixed; z-index: 40; bottom: 28px; left: 50%; padding: 11px 16px; color: #fff; background: rgba(24,29,48,.94); border-radius: 11px; box-shadow: 0 16px 40px rgba(24,29,48,.2); font-size: 12px; transform: translateX(-50%); animation: toast-in .3s var(--ease-out) both; }
+@media(max-width:650px) { .folder-page { padding: 28px 12px 70px; } .folder-card { padding: 14px; } .folder-output>div { width: 100%; } .folder-toolbar span { width: 100%; line-height: 1.5; } }
