@@ -19,11 +19,19 @@ export function aspectRatio(width: number, height: number): string {
     : `${(width / height).toFixed(2)}:1`
 }
 
-export function outputName(name: string, mime: string): string {
+export function ratioName(name: string, ratio: string, mime?: string): string {
+  const dot = name.lastIndexOf('.')
+  const base = dot > 0 ? name.slice(0, dot) : name
+  const originalExt = dot > 0 ? name.slice(dot + 1) : 'jpg'
+  const ext = mime ? (mime === 'image/jpeg' ? 'jpg' : mime.split('/')[1] || originalExt) : originalExt
+  return `${base}_${ratio.replace(':', '比')}.${ext}`
+}
+
+export function outputName(name: string, mime: string, ratio?: string): string {
   const dot = name.lastIndexOf('.')
   const base = dot > 0 ? name.slice(0, dot) : name
   const ext = mime === 'image/jpeg' ? 'jpg' : mime.split('/')[1] || 'jpg'
-  return `${base}_resized.${ext}`
+  return `${base}${ratio ? `_${ratio.replace(':', '比')}` : ''}_resized.${ext}`
 }
 
 export const acceptedTypes = ['image/jpeg', 'image/png', 'image/webp']

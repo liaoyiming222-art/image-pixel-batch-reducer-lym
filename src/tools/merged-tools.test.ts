@@ -4,12 +4,17 @@ import { createElement } from 'react'
 import { FolderCreator } from './folder/FolderCreator'
 import { splitTable } from './folder/parser'
 import { findClosestRatio, getOrientation, ratioArchiveName, simplifyRatio, uniqueArchiveNames } from './inspector/utils'
+import { outputName, ratioName } from '../utils'
 
 describe('图片尺寸提取', () => {
   it('识别方向和标准比例', () => {
     expect(getOrientation(1920, 1080)).toBe('横图')
     expect(findClosestRatio(1920, 1080).label).toBe('16:9')
     expect(simplifyRatio(1920, 1080)).toContain('16:9')
+    expect(findClosestRatio(900, 2100).label).toBe('9:21')
+    expect(findClosestRatio(900, 1200).label).toBe('3:4')
+    expect(findClosestRatio(1500, 1000).label).toBe('3:2')
+    expect(findClosestRatio(900, 1000).label).not.toBe('9:10')
   })
 
   it('生成 Windows 可用的比例压缩包名并避免组内同名文件覆盖', () => {
@@ -17,6 +22,11 @@ describe('图片尺寸提取', () => {
     const file = new File(['image'], '产品图.jpg', { type: 'image/jpeg' })
     const base = { id: '1', file, signature: '1', order: 0, name: '产品图.jpg', width: 4, height: 5, size: file.size, orientation: '竖图' as const, actualRatioText: '4:5', closestRatio: '4:5', errorPercent: 0 }
     expect(uniqueArchiveNames([base, { ...base, id: '2', signature: '2' }])).toEqual(['产品图.jpg', '产品图_2.jpg'])
+  })
+
+  it('所有导出名称都包含标准比例，压缩结果额外标记 resized', () => {
+    expect(ratioName('产品图.jpg', '4:5')).toBe('产品图_4比5.jpg')
+    expect(outputName('产品图.jpg', 'image/jpeg', '4:5')).toBe('产品图_4比5_resized.jpg')
   })
 })
 

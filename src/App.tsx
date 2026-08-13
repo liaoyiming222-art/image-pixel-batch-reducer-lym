@@ -1,9 +1,11 @@
-import { useEffect, useRef, useState } from 'react'
+import { useRef, useState } from 'react'
 import JSZip from 'jszip'
 import { Archive, ArrowRight, BarChart3, CheckCircle2, Download, FolderOpen, FolderPlus, Home, ImageDown, ImagePlus, Lock, Play, RotateCcw, Settings2, ShieldCheck, Sparkles, Trash2, WandSparkles, XCircle, Zap } from 'lucide-react'
 import { readImage, resizeToTarget } from './imageProcessor'
 import type { ImageTask, TaskStatus } from './types'
-import { acceptedTypes, aspectRatio, formatBytes, MB, outputName } from './utils'
+import { acceptedTypes, aspectRatio, formatBytes, MB, outputName, ratioName } from './utils'
+import { ImageWorkspaceProvider, useImageWorkspace } from './imageWorkspace'
+import { findClosestRatio } from './tools/inspector/utils'
 import { ImageInspector } from './tools/inspector/ImageInspector'
 import { FolderCreator } from './tools/folder/FolderCreator'
 import './suite.css'
@@ -51,19 +53,12 @@ async function filesFromDrop(dataTransfer: DataTransfer): Promise<File[]> {
 }
 
 function CompressionTool() {
-  const [tasks, setTasks] = useState<ImageTask[]>([])
-  const tasksRef = useRef(tasks)
-  const [mode, setMode] = useState<'over' | 'all'>('over')
-  const [limitMB, setLimitMB] = useState(10)
-  const [targetMB, setTargetMB] = useState(5)
+  const { tasks, setTasks, tasksRef, mode, setMode, limitMB, setLimitMB, targetMB, setTargetMB } = useImageWorkspace()
   const [dragging, setDragging] = useState(false)
   const [busy, setBusy] = useState(false)
   const [message, setMessage] = useState('')
   const inputRef = useRef<HTMLInputElement>(null)
   const folderInputRef = useRef<HTMLInputElement>(null)
-  useEffect(() => { tasksRef.current = tasks }, [tasks])
-  useEffect(() => () => tasksRef.current.forEach(task => { URL.revokeObjectURL(task.previewUrl); if (task.resultUrl) URL.revokeObjectURL(task.resultUrl) }), [])
-
   const patchTask = (id: string, patch: Partial<ImageTask>) => setTasks(current => current.map(item => item.id === id ? { ...item, ...patch } : item))
 
   const addFiles = async (list: FileList | File[]) => {
@@ -84,11 +79,13 @@ function CompressionTool() {
     for (const file of unique) {
       try {
         const decoded = await readImage(file)
+        const closest = findClosestRatio(decoded.width, decoded.height)
         const task: ImageTask = {
           id: `${Date.now()}-${crypto.randomUUID()}`, file, name: file.name,
           relativePath: file.webkitRelativePath || undefined,
           format: file.type.split('/')[1].replace('jpeg', 'JPG').toUpperCase(), size: file.size,
           width: decoded.width, height: decoded.height, ratio: aspectRatio(decoded.width, decoded.height),
+          closestRatio: closest.label, ratioErrorPercent: closest.errorPercent,
           previewUrl: URL.createObjectURL(file), status: 'pending', progress: 0,
         }
         decoded.close()
@@ -111,7 +108,7 @@ function CompressionTool() {
   }
 
   const processOne = async (task: ImageTask) => {
-    if (mode === 'over' && task.size <= limitMB * MB) {
+    if (mode === 'none' || (mode === 'over' && task.size <= limitMB * MB)) {
       patchTask(task.id, { status: 'skipped', progress: 100, error: undefined })
       return
     }
@@ -133,7 +130,7 @@ function CompressionTool() {
 
   const processAll = async () => {
     if (!tasks.length || busy) return
-    if (targetMB <= 0 || limitMB <= 0 || targetMB >= limitMB) {
+    if (mode !== 'none' && (targetMB <= 0 || limitMB <= 0 || targetMB >= limitMB)) {
       setMessage('目标大小必须大于 0，并且小于限制大小。')
       return
     }
@@ -150,7 +147,7 @@ function CompressionTool() {
     if (!task.result || !task.resultUrl) return
     const link = document.createElement('a')
     link.href = task.resultUrl
-    link.download = outputName(task.name, task.result.type)
+    link.download = outputName(task.name, task.result.type, task.closestRatio)
     link.click()
   }
 
@@ -158,8 +155,8 @@ function CompressionTool() {
     // When requested, keep skipped source files in the download too, so users
     // receive a complete ready-to-upload set instead of only resized files.
     const downloadable = tasks.flatMap(task => {
-      if (task.status === 'done' && task.result) return [{ task, file: task.result, name: outputName(task.name, task.result.type) }]
-      if (includeOriginals && mode === 'over' && task.status === 'skipped') return [{ task, file: task.file, name: task.name }]
+      if (task.status === 'done' && task.result) return [{ task, file: task.result, name: outputName(task.name, task.result.type, task.closestRatio) }]
+      if (includeOriginals && task.status === 'skipped') return [{ task, file: task.file, name: ratioName(task.name, task.closestRatio) }]
       return []
     })
     if (!downloadable.length) return
@@ -189,7 +186,7 @@ function CompressionTool() {
   }
   const clear = () => { tasks.forEach(task => { URL.revokeObjectURL(task.previewUrl); if (task.resultUrl) URL.revokeObjectURL(task.resultUrl) }); setTasks([]) }
   const completedCount = tasks.filter(task => task.status === 'done').length
-  const downloadableCount = tasks.filter(task => task.status === 'done' || (mode === 'over' && task.status === 'skipped')).length
+  const downloadableCount = tasks.filter(task => task.status === 'done' || task.status === 'skipped').length
   const totalSize = tasks.reduce((sum, task) => sum + task.size, 0)
   const resultSize = tasks.reduce((sum, task) => sum + (task.result?.size ?? task.size), 0)
   const savedPercent = totalSize ? Math.max(0, (1 - resultSize / totalSize) * 100) : 0
@@ -197,7 +194,7 @@ function CompressionTool() {
   return <div className="app">
     <main className="compress-main">
       <section className="compress-intro">
-        <div><span className="eyebrow"><WandSparkles size={14} /> 智能图片压缩</span><h1>让图片更轻，<em>清晰依旧</em></h1><p>批量压缩 JPG、PNG 与 WebP，自动保持原始比例和透明背景。</p></div>
+        <div><span className="eyebrow"><WandSparkles size={14} /> 快速图片压缩</span><h1>让图片更轻，<em>清晰依旧</em></h1><p>批量压缩 JPG、PNG 与 WebP，同时检测标准比例并写入导出文件名。</p></div>
         <div className="local-pill"><span><ShieldCheck size={18} /></span><div><b>完全本地处理</b><small>文件不会离开你的设备</small></div></div>
       </section>
       <section className={`dropzone ${dragging ? 'dragging' : ''}`} onClick={() => inputRef.current?.click()}
@@ -217,6 +214,7 @@ function CompressionTool() {
         <div className="section-heading"><div className="section-title"><Settings2 size={18} /><div><h2>压缩设置</h2><p>设定需要处理的图片和输出目标</p></div></div><span className="step-tag">01</span></div>
         <div className="setting-grid">
           <div className="field mode-field"><label>处理范围</label><div className="segmented">
+            <button className={mode === 'none' ? 'active' : ''} onClick={() => setMode('none')}>不压缩，仅标注比例</button>
             <button className={mode === 'over' ? 'active' : ''} onClick={() => setMode('over')}>仅处理超限图片</button>
             <button className={mode === 'all' ? 'active' : ''} onClick={() => setMode('all')}>处理全部图片</button>
           </div></div>
@@ -235,7 +233,7 @@ function CompressionTool() {
         <div className="tasks-head"><div className="section-title"><ImagePlus size={18} /><div><h2>图片队列 <span className="count">{tasks.length}</span></h2><p>压缩状态和结果会在这里实时更新</p></div></div>{tasks.length > 0 && <button className="text-danger" disabled={busy} onClick={clear}><Trash2 size={15} />清空全部</button>}</div>
         {!tasks.length ? <div className="empty"><span className="empty-icon"><ImagePlus size={25} /></span><p>图片队列还是空的</p><span>把图片拖到上方，准备好后即可开始压缩</span></div> :
           <div className="task-list">{tasks.map((task, index) => <article className={`task task-${task.status}`} style={{ '--task-delay': `${Math.min(index, 8) * 45}ms` } as React.CSSProperties} key={task.id}>
-            <div className="task-preview"><img src={task.previewUrl} alt="" /><span>{task.format}</span></div><div className="task-main"><div className="task-top"><div><h3 title={task.relativePath || task.name}>{task.name}</h3>{task.relativePath && <div className="folder-path"><FolderOpen size={12} />{task.relativePath.split('/').slice(0, -1).join(' / ')}</div>}<div className="meta"><span>{formatBytes(task.size)}</span><span>{task.width} × {task.height}</span><span>{task.ratio}</span></div></div><span className={`status ${task.status}`}>{labels[task.status]}</span></div>
+            <div className="task-preview"><img src={task.previewUrl} alt="" /><span>{task.format}</span></div><div className="task-main"><div className="task-top"><div><h3 title={task.relativePath || task.name}>{task.name}</h3>{task.relativePath && <div className="folder-path"><FolderOpen size={12} />{task.relativePath.split('/').slice(0, -1).join(' / ')}</div>}<div className="meta"><span>{formatBytes(task.size)}</span><span>{task.width} × {task.height}</span><span>最近比例 {task.closestRatio}</span></div></div><span className={`status ${task.status}`}>{labels[task.status]}</span></div>
             {task.status === 'processing' && <div className="progress"><div style={{ width: `${task.progress}%` }} /><span>{task.progress}%</span></div>}
             {task.status === 'done' && <div className="result"><CheckCircle2 size={16} /><span>新尺寸 {task.resultWidth} × {task.resultHeight}</span><span>新大小 {formatBytes(task.result!.size)}</span><b>减少 {Math.max(0, (1 - task.result!.size / task.size) * 100).toFixed(1)}%</b></div>}
             {task.status === 'skipped' && <div className="subtle">文件未超过 {limitMB} MB，无需处理</div>}
@@ -251,8 +249,8 @@ function CompressionTool() {
 type ToolKey = 'home' | 'compress' | 'inspect' | 'folders'
 
 const tools = [
-  { key: 'compress' as const, title: '图片大小压缩', description: '批量检查文件大小，将超限图片压缩到目标大小以内', icon: ImageDown, color: 'blue' },
-  { key: 'inspect' as const, title: '图片尺寸提取', description: '批量读取像素、方向和比例，复制或导出 CSV 结果', icon: BarChart3, color: 'purple' },
+  { key: 'compress' as const, title: '快速图片压缩', description: '快速处理平台大小限制，自动检测比例并写入导出文件名', icon: ImageDown, color: 'blue' },
+  { key: 'inspect' as const, title: '比例检测与分组', description: '按标准比例整理图片，下载时可自动压缩超限文件', icon: BarChart3, color: 'purple' },
   { key: 'folders' as const, title: '文件夹批量创建', description: '解析 Excel / WPS 需求，按统一规则批量创建文件夹', icon: FolderPlus, color: 'green' },
 ]
 
@@ -267,10 +265,10 @@ function SuiteHome({ onOpen }: { onOpen: (tool: ToolKey) => void }) {
 
 export default function App() {
   const [activeTool, setActiveTool] = useState<ToolKey>('home')
-  return <div className="suite-shell"><nav className="suite-nav"><button className="suite-brand" onClick={() => setActiveTool('home')}><span><ImagePlus size={19} /></span><b>PixelFlow</b><small>本地效率工具</small></button><div className="suite-nav-links"><button className={activeTool === 'home' ? 'active' : ''} onClick={() => setActiveTool('home')}><Home size={15} />首页</button>{tools.map(tool => <button key={tool.key} className={activeTool === tool.key ? 'active' : ''} onClick={() => setActiveTool(tool.key)}><tool.icon size={15} />{tool.title}</button>)}</div><div className="nav-local"><span/>本地运行</div></nav>
+  return <ImageWorkspaceProvider><div className="suite-shell"><nav className="suite-nav"><button className="suite-brand" onClick={() => setActiveTool('home')}><span><ImagePlus size={19} /></span><b>PixelFlow</b><small>本地效率工具</small></button><div className="suite-nav-links"><button className={activeTool === 'home' ? 'active' : ''} onClick={() => setActiveTool('home')}><Home size={15} />首页</button>{tools.map(tool => <button key={tool.key} className={activeTool === tool.key ? 'active' : ''} onClick={() => setActiveTool(tool.key)}><tool.icon size={15} />{tool.title}</button>)}</div><div className="nav-local"><span/>本地运行</div></nav>
     {activeTool === 'home' && <SuiteHome onOpen={setActiveTool} />}
     {activeTool === 'compress' && <CompressionTool />}
     {activeTool === 'inspect' && <ImageInspector />}
     {activeTool === 'folders' && <FolderCreator />}
-  </div>
+  </div></ImageWorkspaceProvider>
 }

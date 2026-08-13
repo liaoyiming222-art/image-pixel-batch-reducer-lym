@@ -19,6 +19,17 @@
 .inspector-stats .ratio-list { display: flex; align-items: center; gap: 14px; }
 .ratio-list p { display: flex; gap: 5px; flex-wrap: wrap; margin: 0; }
 .ratio-list em { padding: 5px 8px; color: #6543ad; background: #f1edff; border-radius: 999px; font-size: 11px; font-style: normal; }
+.inspector-process-settings { margin: 0 0 16px; padding: 13px 15px; display: grid; grid-template-columns: minmax(190px,1fr) auto 145px 145px; align-items: center; gap: 10px; background: rgba(255,255,255,.88); border: 1px solid var(--border); border-radius: 15px; }
+.inspector-process-settings>div:first-child { display: flex; align-items: center; gap: 9px; color: #7854c3; }
+.inspector-process-settings>div:first-child span { display: flex; flex-direction: column; gap: 2px; }
+.inspector-process-settings>div:first-child strong { color: #343b4e; font-size: 13px; }
+.inspector-process-settings>div:first-child small { color: var(--muted); font-size: 10px; }
+.inspector-process-mode { padding: 3px; display: flex; background: #f1eff7; border-radius: 9px; }
+.inspector-process-mode button { min-height: 30px; padding: 0 9px; color: #70798b; background: transparent; border: 0; border-radius: 7px; font-size: 11px; }
+.inspector-process-mode button.active { color: #6846ad; background: #fff; box-shadow: 0 3px 10px rgba(62,48,91,.08); font-weight: 700; }
+.inspector-process-settings label { height: 36px; padding-left: 9px; display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 6px; color: #6e7789; background: #fafafe; border: 1px solid var(--border); border-radius: 9px; font-size: 10px; }
+.inspector-process-settings label input { min-width: 0; width: 100%; padding: 0; color: #343b4e; background: transparent; border: 0; outline: 0; font-weight: 700; }
+.inspector-process-settings label span { padding: 0 8px; color: #8b93a3; }
 .ratio-groups { margin: 0 0 16px; padding: 16px; background: rgba(255,255,255,.86); border: 1px solid var(--border); border-radius: 16px; box-shadow: 0 10px 32px rgba(37,45,77,.04); animation: rise-in .5s .09s var(--ease-out) both; }
 .ratio-groups-head { display: flex; align-items: center; justify-content: space-between; gap: 20px; margin-bottom: 12px; }
 .ratio-groups-head h2 { margin: 0; font-size: 16px; }
@@ -63,5 +74,6 @@ mark { color: #865c0d; background: #fff3d6; }
 .row-delete { padding: 4px; color: #c84d54; background: transparent; border: 0; }
 .suite-toast { position: fixed; z-index: 40; bottom: 28px; left: 50%; padding: 11px 16px; color: #fff; background: rgba(24,29,48,.94); border-radius: 11px; box-shadow: 0 16px 40px rgba(24,29,48,.2); font-size: 12px; transform: translateX(-50%); animation: toast-in .3s var(--ease-out) both; }
 @keyframes toast-in { from { opacity: 0; transform: translate(-50%, 10px); } to { opacity: 1; transform: translate(-50%, 0); } }
+@media(max-width:1000px) { .inspector-process-settings { grid-template-columns: 1fr 1fr; } }
 @media(max-width:900px) { .ratio-group-grid { grid-template-columns: repeat(2,minmax(0,1fr)); } }
-@media(max-width:760px) { .inspector-page { padding: 28px 12px 70px; } .inspector-stats { grid-template-columns: repeat(2,1fr); } .inspector-stats .ratio-list { grid-column: 1/-1; } .inspector-actions { align-items: flex-start; gap: 10px; } .inspector-actions>div { flex-wrap: wrap; justify-content: flex-end; } .tool-intro { align-items: flex-start; } .tool-intro p { line-height: 1.6; } .inspector-upload { height: 280px; padding: 20px; text-align: center; } .inspector-upload.compact { min-height: 88px; flex-direction: row; text-align: left; } .ratio-group-grid { grid-template-columns: 1fr; } .ratio-groups-head { align-items: flex-start; } .ratio-groups-tools { align-items: flex-end; flex-direction: column; } }
+@media(max-width:760px) { .inspector-page { padding: 28px 12px 70px; } .inspector-stats { grid-template-columns: repeat(2,1fr); } .inspector-stats .ratio-list { grid-column: 1/-1; } .inspector-process-settings { grid-template-columns: 1fr; } .inspector-actions { align-items: flex-start; gap: 10px; } .inspector-actions>div { flex-wrap: wrap; justify-content: flex-end; } .tool-intro { align-items: flex-start; } .tool-intro p { line-height: 1.6; } .inspector-upload { height: 280px; padding: 20px; text-align: center; } .inspector-upload.compact { min-height: 88px; flex-direction: row; text-align: left; } .ratio-group-grid { grid-template-columns: 1fr; } .ratio-groups-head { align-items: flex-start; } .ratio-groups-tools { align-items: flex-end; flex-direction: column; } }

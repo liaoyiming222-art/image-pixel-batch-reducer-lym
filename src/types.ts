@@ -10,6 +10,8 @@ export interface ImageTask {
   width: number
   height: number
   ratio: string
+  closestRatio: string
+  ratioErrorPercent: number
   previewUrl: string
   status: TaskStatus
   progress: number
