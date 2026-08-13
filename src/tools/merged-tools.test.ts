@@ -3,13 +3,20 @@ import { fireEvent, render, screen } from '@testing-library/react'
 import { createElement } from 'react'
 import { FolderCreator } from './folder/FolderCreator'
 import { splitTable } from './folder/parser'
-import { findClosestRatio, getOrientation, simplifyRatio } from './inspector/utils'
+import { findClosestRatio, getOrientation, ratioArchiveName, simplifyRatio, uniqueArchiveNames } from './inspector/utils'
 
 describe('图片尺寸提取', () => {
   it('识别方向和标准比例', () => {
     expect(getOrientation(1920, 1080)).toBe('横图')
     expect(findClosestRatio(1920, 1080).label).toBe('16:9')
     expect(simplifyRatio(1920, 1080)).toContain('16:9')
+  })
+
+  it('生成 Windows 可用的比例压缩包名并避免组内同名文件覆盖', () => {
+    expect(ratioArchiveName('4:5', 3)).toBe('图片比例_4比5_3张.zip')
+    const file = new File(['image'], '产品图.jpg', { type: 'image/jpeg' })
+    const base = { id: '1', file, signature: '1', order: 0, name: '产品图.jpg', width: 4, height: 5, size: file.size, orientation: '竖图' as const, actualRatioText: '4:5', closestRatio: '4:5', errorPercent: 0 }
+    expect(uniqueArchiveNames([base, { ...base, id: '2', signature: '2' }])).toEqual(['产品图.jpg', '产品图_2.jpg'])
   })
 })
 

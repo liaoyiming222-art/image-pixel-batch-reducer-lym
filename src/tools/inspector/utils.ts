@@ -40,7 +40,7 @@ export function readRecord(file: File, order: number): Promise<ImageRecord> {
       cleanup()
       if (!width || !height) return reject(new Error('无法读取有效尺寸'))
       const closest = findClosestRatio(width, height)
-      resolve({ id: crypto.randomUUID(), signature: fileSignature(file), order, name: file.name, width, height, size: file.size,
+      resolve({ id: crypto.randomUUID(), file, signature: fileSignature(file), order, name: file.name, width, height, size: file.size,
         orientation: getOrientation(width, height), actualRatioText: simplifyRatio(width, height),
         closestRatio: closest.label, errorPercent: closest.errorPercent })
     }
@@ -57,4 +57,20 @@ export function downloadCsv(records: ImageRecord[]) {
   const url = URL.createObjectURL(new Blob([createCsv(records)], { type: 'text/csv;charset=utf-8' }))
   const anchor = document.createElement('a'); anchor.href = url; anchor.download = `图片尺寸检测结果_${new Date().toISOString().slice(0, 10)}.csv`; anchor.click()
   URL.revokeObjectURL(url)
+}
+
+export const ratioArchiveName = (ratio: string, count: number) => `图片比例_${ratio.replace(':', '比')}_${count}张.zip`
+
+export function uniqueArchiveNames(records: ImageRecord[]) {
+  const used = new Set<string>()
+  return records.map(record => {
+    const dot = record.name.lastIndexOf('.')
+    const stem = dot > 0 ? record.name.slice(0, dot) : record.name
+    const extension = dot > 0 ? record.name.slice(dot) : ''
+    let name = record.name
+    let index = 2
+    while (used.has(name.toLocaleLowerCase())) name = `${stem}_${index++}${extension}`
+    used.add(name.toLocaleLowerCase())
+    return name
+  })
 }

@@ -2,6 +2,7 @@ export type Orientation = '横图' | '竖图' | '方图'
 
 export interface ImageRecord {
   id: string
+  file: File
   signature: string
   order: number
   name: string

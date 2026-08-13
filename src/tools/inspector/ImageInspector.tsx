@@ -1,7 +1,8 @@
 import { useMemo, useRef, useState } from 'react'
-import { BarChart3, ClipboardCopy, Download, ImagePlus, Trash2 } from 'lucide-react'
+import JSZip from 'jszip'
+import { Archive, BarChart3, ClipboardCopy, Download, ImagePlus, Trash2 } from 'lucide-react'
 import type { ImageRecord, SortDirection, SortKey } from './types'
-import { createClipboardText, downloadCsv, fileSignature, formatError, formatFileSize, isSupportedImage, readRecord, STANDARD_RATIOS } from './utils'
+import { createClipboardText, downloadCsv, fileSignature, formatError, formatFileSize, isSupportedImage, ratioArchiveName, readRecord, STANDARD_RATIOS, uniqueArchiveNames } from './utils'
 import './inspector.css'
 
 export function ImageInspector() {
@@ -43,6 +44,32 @@ export function ImageInspector() {
   }
   const copy = async () => { try { await navigator.clipboard.writeText(createClipboardText(sorted)); notify('已复制全部结果') } catch { notify('复制失败，请检查剪贴板权限') } }
   const count = (orientation: string) => records.filter(item => item.orientation === orientation).length
+  const createGroupArchive = async (ratio: string, items: ImageRecord[]) => {
+    const zip = new JSZip()
+    const names = uniqueArchiveNames(items)
+    items.forEach((item, index) => zip.file(names[index], item.file))
+    return { blob: await zip.generateAsync({ type: 'blob', compression: 'STORE' }), name: ratioArchiveName(ratio, items.length) }
+  }
+  const triggerArchive = ({ blob, name }: { blob: Blob, name: string }) => {
+    const url = URL.createObjectURL(blob)
+    const anchor = document.createElement('a')
+    anchor.href = url; anchor.download = name; anchor.click()
+    window.setTimeout(() => URL.revokeObjectURL(url), 1000)
+  }
+  const downloadGroup = async (ratio: string, items: ImageRecord[]) => {
+    try { triggerArchive(await createGroupArchive(ratio, items)); notify(`已下载 ${ratio} 分组`) }
+    catch { notify(`${ratio} 分组打包失败`) }
+  }
+  const downloadAllGroups = async () => {
+    if (busy || !ratioGroups.length) return
+    setBusy(true)
+    try {
+      const archives = await Promise.all(ratioGroups.map(group => createGroupArchive(group.ratio, group.items)))
+      archives.forEach(triggerArchive)
+      notify(`已下载 ${archives.length} 个分组压缩包`)
+    } catch { notify('分组压缩包生成失败，请重试') }
+    finally { setBusy(false) }
+  }
 
   return <div className="inspector-page">
     <section className="tool-intro"><div className="tool-intro-icon"><BarChart3 /></div><div><h1>图片尺寸与画幅比例检测</h1><p>批量读取宽高、方向和文件大小，自动匹配最接近的标准画幅比例</p></div></section>
@@ -53,9 +80,9 @@ export function ImageInspector() {
       <section className="inspector-stats"><div><span>图片总数</span><b>{records.length}</b></div><div><span>横图</span><b>{count('横图')}</b></div><div><span>竖图</span><b>{count('竖图')}</b></div><div><span>方图</span><b>{count('方图')}</b></div>
         <div className="ratio-list"><span>比例分布</span><p>{STANDARD_RATIOS.map(ratio => ({ label: ratio.label, count: records.filter(item => item.closestRatio === ratio.label).length })).filter(item => item.count).map(item => <em key={item.label}>{item.label} <b>{item.count}</b></em>)}</p></div></section>
       <section className="ratio-groups">
-        <div className="ratio-groups-head"><div><h2>按比例自动分组</h2><p>图片按最接近的标准画幅归组，便于批量核对与整理</p></div><span>{ratioGroups.length} 个比例组</span></div>
+        <div className="ratio-groups-head"><div><h2>按比例自动分组</h2><p>图片按最接近的标准画幅归组，便于批量核对与整理</p></div><div className="ratio-groups-tools"><span>{ratioGroups.length} 个比例组</span><button type="button" disabled={busy} onClick={() => void downloadAllGroups()}><Archive size={14} />下载全部分组</button></div></div>
         <div className="ratio-group-grid">{ratioGroups.map(group => <article className="ratio-group" key={group.ratio}>
-          <header><strong>{group.ratio}</strong><span>{group.items.length} 张</span></header>
+          <header><strong>{group.ratio}</strong><div><span>{group.items.length} 张</span><button type="button" disabled={busy} onClick={() => void downloadGroup(group.ratio, group.items)}><Download size={13} />下载本组</button></div></header>
           <div>{group.items.map(item => <div className="ratio-group-item" key={item.id}><span title={item.name}>{item.name}</span><small>{item.width} × {item.height}</small><em>{formatError(item.errorPercent)}</em></div>)}</div>
         </article>)}</div>
       </section>
