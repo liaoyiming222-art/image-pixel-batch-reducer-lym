@@ -55,7 +55,7 @@ function CompressionTool() {
   const tasksRef = useRef(tasks)
   const [mode, setMode] = useState<'over' | 'all'>('over')
   const [limitMB, setLimitMB] = useState(10)
-  const [targetMB, setTargetMB] = useState(8)
+  const [targetMB, setTargetMB] = useState(5)
   const [dragging, setDragging] = useState(false)
   const [busy, setBusy] = useState(false)
   const [message, setMessage] = useState('')
@@ -154,14 +154,27 @@ function CompressionTool() {
     link.click()
   }
 
-  const downloadAll = async () => {
-    const completed = tasks.filter(task => task.status === 'done' && task.result)
-    if (!completed.length) return
-    if (completed.length === 1) { download(completed[0]); return }
+  const downloadAll = async (includeOriginals = false) => {
+    // When requested, keep skipped source files in the download too, so users
+    // receive a complete ready-to-upload set instead of only resized files.
+    const downloadable = tasks.flatMap(task => {
+      if (task.status === 'done' && task.result) return [{ task, file: task.result, name: outputName(task.name, task.result.type) }]
+      if (includeOriginals && mode === 'over' && task.status === 'skipped') return [{ task, file: task.file, name: task.name }]
+      return []
+    })
+    if (!downloadable.length) return
+    if (downloadable.length === 1) {
+      const item = downloadable[0]
+      const url = URL.createObjectURL(item.file)
+      const link = document.createElement('a')
+      link.href = url; link.download = item.name; link.click()
+      setTimeout(() => URL.revokeObjectURL(url), 1000)
+      return
+    }
     const zip = new JSZip()
-    completed.forEach(task => {
+    downloadable.forEach(({ task, file, name }) => {
       const folder = task.relativePath?.split('/').slice(0, -1).join('/')
-      zip.file(folder ? `${folder}/${outputName(task.name, task.result!.type)}` : outputName(task.name, task.result!.type), task.result!)
+      zip.file(folder ? `${folder}/${name}` : name, file)
     })
     const blob = await zip.generateAsync({ type: 'blob', compression: 'DEFLATE' })
     const url = URL.createObjectURL(blob)
@@ -176,6 +189,7 @@ function CompressionTool() {
   }
   const clear = () => { tasks.forEach(task => { URL.revokeObjectURL(task.previewUrl); if (task.resultUrl) URL.revokeObjectURL(task.resultUrl) }); setTasks([]) }
   const completedCount = tasks.filter(task => task.status === 'done').length
+  const downloadableCount = tasks.filter(task => task.status === 'done' || (mode === 'over' && task.status === 'skipped')).length
   const totalSize = tasks.reduce((sum, task) => sum + task.size, 0)
   const resultSize = tasks.reduce((sum, task) => sum + (task.result?.size ?? task.size), 0)
   const savedPercent = totalSize ? Math.max(0, (1 - resultSize / totalSize) * 100) : 0
@@ -230,7 +244,7 @@ function CompressionTool() {
           </article>)}</div>}
       </section>
     </main>
-    <footer><div><strong>{tasks.length || '尚未添加'}{tasks.length ? ' 张图片' : ''}</strong><span>{completedCount ? ` · ${completedCount} 张已完成` : ' · 所有处理均在本地完成'}</span></div><div className="footer-actions"><button className="secondary" disabled={!completedCount || busy} onClick={() => void downloadAll()}><Archive size={17} />下载结果</button><button className="primary" disabled={!tasks.length || busy} onClick={() => void processAll()}>{busy ? <RotateCcw className="spin" size={18} /> : <Play size={17} fill="currentColor" />}{busy ? '正在处理…' : `开始压缩${tasks.length ? ` · ${tasks.length}` : ''}`}</button></div></footer>
+    <footer><div><strong>{tasks.length || '尚未添加'}{tasks.length ? ' 张图片' : ''}</strong><span>{completedCount ? ` · ${completedCount} 张已完成` : ' · 所有处理均在本地完成'}</span></div><div className="footer-actions"><button className="secondary" disabled={!completedCount || busy} onClick={() => void downloadAll()}><Download size={17} />下载压缩图片</button><button className="secondary" disabled={!downloadableCount || busy} onClick={() => void downloadAll(true)}><Archive size={17} />下载全部图片</button><button className="primary" disabled={!tasks.length || busy} onClick={() => void processAll()}>{busy ? <RotateCcw className="spin" size={18} /> : <Play size={17} fill="currentColor" />}{busy ? '正在处理…' : `开始压缩${tasks.length ? ` · ${tasks.length}` : ''}`}</button></div></footer>
   </div>
 }
 
