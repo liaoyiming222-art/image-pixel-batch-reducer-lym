@@ -1,6 +1,6 @@
 import { useMemo, useRef, useState } from 'react'
 import JSZip from 'jszip'
-import { Archive, BarChart3, ChevronDown, ClipboardCopy, Download, FolderOpen, ImagePlus, Settings2, Trash2 } from 'lucide-react'
+import { Archive, BarChart3, ClipboardCopy, Download, FolderOpen, ImagePlus, Settings2, Trash2 } from 'lucide-react'
 import type { ImageRecord, SortDirection, SortKey } from './types'
 import { createClipboardText, downloadCsv, fileSignature, formatError, formatFileSize, isSupportedImage, ratioArchiveName, readRecord, STANDARD_RATIOS, uniqueArchiveNames } from './utils'
 import { useImageWorkspace } from '../../imageWorkspace'
@@ -13,7 +13,6 @@ import './inspector.css'
 export function ImageInspector() {
   const { tasks, setTasks, tasksRef, inspectorMode, setInspectorMode, limitMB, setLimitMB, targetMB, setTargetMB } = useImageWorkspace()
   const [busy, setBusy] = useState(false)
-  const [settingsOpen, setSettingsOpen] = useState(false)
   const [progressText, setProgressText] = useState('')
   const [activeDownload, setActiveDownload] = useState('')
   const [sortKey, setSortKey] = useState<SortKey>('order')
@@ -159,11 +158,11 @@ export function ImageInspector() {
     </section> : <>
       <section className="inspector-stats"><div><span>图片总数</span><b>{records.length}</b></div><div><span>横图</span><b>{count('横图')}</b></div><div><span>竖图</span><b>{count('竖图')}</b></div><div><span>方图</span><b>{count('方图')}</b></div>
         <div className="ratio-list"><span>比例分布</span><div className="ratio-distribution">{ratioDistribution.map(item => <div className="ratio-distribution-item" key={item.ratio}><strong>{item.ratio}</strong><span>{item.count} 张 · {item.percent.toFixed(0)}%</span><i><b style={{ width: `${item.percent}%` }} /></i></div>)}</div></div></section>
-      <section className={`inspector-process-settings ${settingsOpen ? 'expanded' : 'collapsed'}`}>
-        <button type="button" className="process-summary" onClick={() => setSettingsOpen(value => !value)}><Settings2 size={18} /><span><strong>下载处理：{inspectorMode === 'none' ? '不压缩' : inspectorMode === 'over' ? '仅压缩超限图片' : '压缩全部图片'}</strong><small>下载分组时自动应用</small></span><em>{settingsOpen ? '收起' : '修改'}<ChevronDown size={14} /></em></button>
-        {settingsOpen && <div className="process-details"><div className="inspector-process-mode"><button className={inspectorMode === 'none' ? 'active' : ''} onClick={() => setInspectorMode('none')}>不压缩</button><button className={inspectorMode === 'over' ? 'active' : ''} onClick={() => setInspectorMode('over')}>仅压缩超限</button><button className={inspectorMode === 'all' ? 'active' : ''} onClick={() => setInspectorMode('all')}>压缩全部</button></div>
+      <section className="inspector-process-settings">
+        <div className="process-heading"><Settings2 size={18} /><span><strong>下载处理：{inspectorMode === 'none' ? '不压缩' : inspectorMode === 'over' ? '仅压缩超限图片' : '压缩全部图片'}</strong><small>下载分组时自动应用</small></span></div>
+        <div className="process-details"><div className="inspector-process-mode"><button className={inspectorMode === 'none' ? 'active' : ''} onClick={() => setInspectorMode('none')}>不压缩</button><button className={inspectorMode === 'over' ? 'active' : ''} onClick={() => setInspectorMode('over')}>仅压缩超限</button><button className={inspectorMode === 'all' ? 'active' : ''} onClick={() => setInspectorMode('all')}>压缩全部</button></div>
           <label>平台限制<input type="number" min="0.1" step="0.1" value={limitMB} onChange={event => setLimitMB(+event.target.value)} /><span>MB</span></label>
-          <label>目标大小<input type="number" min="0.1" step="0.1" value={targetMB} onChange={event => setTargetMB(+event.target.value)} /><span>MB</span></label></div>}
+          <label>目标大小<input type="number" min="0.1" step="0.1" value={targetMB} onChange={event => setTargetMB(+event.target.value)} /><span>MB</span></label></div>
       </section>
       <section className="ratio-groups">
         <div className="ratio-groups-head"><div><h2>按比例自动分组</h2><p>图片按最接近的标准画幅归组，便于批量核对与整理</p></div><div className="ratio-groups-tools"><span>{ratioGroups.length} 个比例组</span><button type="button" disabled={busy} onClick={() => void downloadAllGroups()}><Archive size={14} />{activeDownload === 'all' && progressText ? progressText : '下载全部分组'}</button></div></div>
