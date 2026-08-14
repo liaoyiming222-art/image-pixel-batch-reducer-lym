@@ -3,13 +3,16 @@ import type { Dispatch, ReactNode, SetStateAction } from 'react'
 import type { ImageTask } from './types'
 
 export type ProcessMode = 'none' | 'over' | 'all'
+export type CompressionMode = 'over' | 'all'
 
 interface ImageWorkspaceValue {
   tasks: ImageTask[]
   setTasks: Dispatch<SetStateAction<ImageTask[]>>
   tasksRef: React.MutableRefObject<ImageTask[]>
-  mode: ProcessMode
-  setMode: Dispatch<SetStateAction<ProcessMode>>
+  compressionMode: CompressionMode
+  setCompressionMode: Dispatch<SetStateAction<CompressionMode>>
+  inspectorMode: ProcessMode
+  setInspectorMode: Dispatch<SetStateAction<ProcessMode>>
   limitMB: number
   setLimitMB: Dispatch<SetStateAction<number>>
   targetMB: number
@@ -21,7 +24,8 @@ const ImageWorkspaceContext = createContext<ImageWorkspaceValue | null>(null)
 export function ImageWorkspaceProvider({ children }: { children: ReactNode }) {
   const [tasks, setTasks] = useState<ImageTask[]>([])
   const tasksRef = useRef(tasks)
-  const [mode, setMode] = useState<ProcessMode>('over')
+  const [compressionMode, setCompressionMode] = useState<CompressionMode>('over')
+  const [inspectorMode, setInspectorMode] = useState<ProcessMode>('over')
   const [limitMB, setLimitMB] = useState(10)
   const [targetMB, setTargetMB] = useState(5)
   useEffect(() => { tasksRef.current = tasks }, [tasks])
@@ -29,7 +33,7 @@ export function ImageWorkspaceProvider({ children }: { children: ReactNode }) {
     URL.revokeObjectURL(task.previewUrl)
     if (task.resultUrl) URL.revokeObjectURL(task.resultUrl)
   }), [])
-  return <ImageWorkspaceContext.Provider value={{ tasks, setTasks, tasksRef, mode, setMode, limitMB, setLimitMB, targetMB, setTargetMB }}>
+  return <ImageWorkspaceContext.Provider value={{ tasks, setTasks, tasksRef, compressionMode, setCompressionMode, inspectorMode, setInspectorMode, limitMB, setLimitMB, targetMB, setTargetMB }}>
     {children}
   </ImageWorkspaceContext.Provider>
 }

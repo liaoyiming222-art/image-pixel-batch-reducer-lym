@@ -53,7 +53,7 @@ async function filesFromDrop(dataTransfer: DataTransfer): Promise<File[]> {
 }
 
 function CompressionTool() {
-  const { tasks, setTasks, tasksRef, mode, setMode, limitMB, setLimitMB, targetMB, setTargetMB } = useImageWorkspace()
+  const { tasks, setTasks, tasksRef, compressionMode, setCompressionMode, limitMB, setLimitMB, targetMB, setTargetMB } = useImageWorkspace()
   const [dragging, setDragging] = useState(false)
   const [busy, setBusy] = useState(false)
   const [message, setMessage] = useState('')
@@ -108,7 +108,7 @@ function CompressionTool() {
   }
 
   const processOne = async (task: ImageTask) => {
-    if (mode === 'none' || (mode === 'over' && task.size <= limitMB * MB)) {
+    if (compressionMode === 'over' && task.size <= limitMB * MB) {
       patchTask(task.id, { status: 'skipped', progress: 100, error: undefined })
       return
     }
@@ -130,7 +130,7 @@ function CompressionTool() {
 
   const processAll = async () => {
     if (!tasks.length || busy) return
-    if (mode !== 'none' && (targetMB <= 0 || limitMB <= 0 || targetMB >= limitMB)) {
+    if (targetMB <= 0 || limitMB <= 0 || targetMB >= limitMB) {
       setMessage('目标大小必须大于 0，并且小于限制大小。')
       return
     }
@@ -156,7 +156,7 @@ function CompressionTool() {
     // receive a complete ready-to-upload set instead of only resized files.
     const downloadable = tasks.flatMap(task => {
       if (task.status === 'done' && task.result) return [{ task, file: task.result, name: outputName(task.name, task.result.type, task.closestRatio) }]
-      if (includeOriginals && task.status === 'skipped') return [{ task, file: task.file, name: ratioName(task.name, task.closestRatio) }]
+      if (includeOriginals && compressionMode === 'over' && task.status === 'skipped') return [{ task, file: task.file, name: ratioName(task.name, task.closestRatio) }]
       return []
     })
     if (!downloadable.length) return
@@ -184,7 +184,11 @@ function CompressionTool() {
     URL.revokeObjectURL(task.previewUrl); if (task.resultUrl) URL.revokeObjectURL(task.resultUrl)
     setTasks(current => current.filter(item => item.id !== task.id))
   }
-  const clear = () => { tasks.forEach(task => { URL.revokeObjectURL(task.previewUrl); if (task.resultUrl) URL.revokeObjectURL(task.resultUrl) }); setTasks([]) }
+  const clear = () => {
+    if (!window.confirm('将同时清空快速压缩和比例分组中的图片及处理结果，确认继续吗？')) return
+    tasks.forEach(task => { URL.revokeObjectURL(task.previewUrl); if (task.resultUrl) URL.revokeObjectURL(task.resultUrl) })
+    setTasks([])
+  }
   const completedCount = tasks.filter(task => task.status === 'done').length
   const downloadableCount = tasks.filter(task => task.status === 'done' || task.status === 'skipped').length
   const totalSize = tasks.reduce((sum, task) => sum + task.size, 0)
@@ -214,9 +218,8 @@ function CompressionTool() {
         <div className="section-heading"><div className="section-title"><Settings2 size={18} /><div><h2>压缩设置</h2><p>设定需要处理的图片和输出目标</p></div></div><span className="step-tag">01</span></div>
         <div className="setting-grid">
           <div className="field mode-field"><label>处理范围</label><div className="segmented">
-            <button className={mode === 'none' ? 'active' : ''} onClick={() => setMode('none')}>不压缩，仅标注比例</button>
-            <button className={mode === 'over' ? 'active' : ''} onClick={() => setMode('over')}>仅处理超限图片</button>
-            <button className={mode === 'all' ? 'active' : ''} onClick={() => setMode('all')}>处理全部图片</button>
+            <button className={compressionMode === 'over' ? 'active' : ''} onClick={() => setCompressionMode('over')}>仅处理超限图片</button>
+            <button className={compressionMode === 'all' ? 'active' : ''} onClick={() => setCompressionMode('all')}>处理全部图片</button>
           </div></div>
           <div className="field"><label htmlFor="limit">平台限制</label><div className="input-unit"><input id="limit" type="number" min="0.1" step="0.1" value={limitMB} onChange={e => setLimitMB(+e.target.value)} /><span>MB</span></div></div>
           <div className="field"><label htmlFor="target">目标大小</label><div className="input-unit"><input id="target" type="number" min="0.1" step="0.1" value={targetMB} onChange={e => setTargetMB(+e.target.value)} /><span>MB</span></div></div>
