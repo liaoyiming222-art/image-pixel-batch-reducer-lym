@@ -72,8 +72,20 @@ export function FolderCreator() {
       if (!row.folder || seen.has(key)) { updateRow(row.id, { status: '名称重复，已跳过' }); skipped += 1; continue }
       seen.add(key)
       try {
-        try { await handle.getDirectoryHandle(row.folder); updateRow(row.id, { status: '已存在，已跳过' }); skipped += 1 }
-        catch (error) { if ((error as DOMException).name !== 'NotFoundError') throw error; await handle.getDirectoryHandle(row.folder, { create: true }); updateRow(row.id, { status: '创建成功' }); created += 1 }
+        let parent: DirectoryHandle
+        let parentCreated = false
+        try { parent = await handle.getDirectoryHandle(row.folder) }
+        catch (error) {
+          if ((error as DOMException).name !== 'NotFoundError') throw error
+          parent = await handle.getDirectoryHandle(row.folder, { create: true })
+          parentCreated = true
+        }
+        await Promise.all([
+          parent.getDirectoryHandle('AI', { create: true }),
+          parent.getDirectoryHandle('原图', { create: true }),
+        ])
+        if (parentCreated) { updateRow(row.id, { status: '创建成功' }); created += 1 }
+        else { updateRow(row.id, { status: '已存在，子文件夹已补齐' }); skipped += 1 }
       } catch { updateRow(row.id, { status: '创建失败' }); failed += 1 }
     }
     setWorking(false); setNotice(`处理完成：创建 ${created} 个，跳过 ${skipped} 个，失败 ${failed} 个。`)
@@ -85,7 +97,7 @@ export function FolderCreator() {
       <div className="folder-mapping"><label><input type="checkbox" checked={hasHeader} onChange={event => setHasHeader(event.target.checked)} /> 第一行是表头</label><label>需求名称列：<select value={nameColumn} onChange={event => setNameColumn(+event.target.value)}>{labels.map((label, index) => <option key={index} value={index}>{label}</option>)}</select></label><label>需求说明列：<select value={Math.min(detailColumn, maxColumns - 1)} onChange={event => setDetailColumn(+event.target.value)}>{labels.map((label, index) => <option key={index} value={index}>{label}</option>)}</select></label></div>
     </section>
     <section className="folder-card"><h2>2. 预览并检查 <small>{rows.length ? `已解析 ${rows.length} 条` : '请先解析内容'}</small></h2><div className="folder-table"><table><thead><tr><th>序号</th><th>需求名称</th><th>需求说明</th><th>命名后缀</th><th>将创建的文件夹名称</th><th>状态</th></tr></thead><tbody>{rows.map((row, index) => <tr key={row.id}><td>{index + 1}</td><td>{row.name}</td><td>{row.detail}</td><td><div className="suffix-editor"><select aria-label={`第 ${index + 1} 条需求的后缀分类`} value={suffixOptions.includes(row.tag) ? row.tag : '__custom__'} onChange={event => { if (event.target.value === '__custom__') return; const tag = event.target.value; updateRow(row.id, { tag, folder: folderName(row.name, tag), status: '待创建' }); rememberSuffix(tag) }}><option value="__custom__">自定义后缀</option>{suffixOptions.map(value => <option key={value} value={value}>{value}</option>)}</select><input aria-label={`第 ${index + 1} 条需求的自定义后缀`} value={row.tag} onBlur={event => rememberSuffix(event.target.value)} onChange={event => { const tag = event.target.value; updateRow(row.id, { tag, folder: folderName(row.name, tag), status: '待创建' }) }} /></div></td><td><input value={row.folder} onChange={event => updateRow(row.id, { folder: safePart(event.target.value), status: '待创建' })} /></td><td className={row.status.includes('成功') ? 'ok' : row.status.includes('失败') ? 'bad' : ''}>{row.status}</td></tr>)}</tbody></table></div></section>
-    <section className="folder-card"><h2>3. 选择保存位置并创建</h2><div className="folder-output"><div>{handle ? `已选择：${handle.name}` : '尚未选择目标文件夹'}</div><button onClick={() => void chooseFolder()}>选择目标文件夹</button><button className="primary" disabled={working} onClick={() => void createFolders()}>{working ? '正在创建…' : '批量创建文件夹'}</button></div><p>已存在的同名文件夹会跳过，不会覆盖其中的文件。</p></section>
+    <section className="folder-card"><h2>3. 选择保存位置并创建</h2><div className="folder-output"><div>{handle ? `已选择：${handle.name}` : '尚未选择目标文件夹'}</div><button onClick={() => void chooseFolder()}>选择目标文件夹</button><button className="primary" disabled={working} onClick={() => void createFolders()}>{working ? '正在创建…' : '批量创建文件夹'}</button></div><p>每个需求文件夹内会自动创建“AI”和“原图”两个子文件夹；已有文件不会被覆盖。</p></section>
     {notice && <div className="folder-notice">{notice}</div>}
   </div>
 }
