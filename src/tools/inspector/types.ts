@@ -15,5 +15,9 @@ export interface ImageRecord {
   errorPercent: number
 }
 
+export interface LoadedImageRecord extends ImageRecord {
+  previewUrl: string
+}
+
 export type SortKey = 'order' | 'name' | 'width' | 'height' | 'closestRatio' | 'errorPercent'
 export type SortDirection = 'asc' | 'desc'

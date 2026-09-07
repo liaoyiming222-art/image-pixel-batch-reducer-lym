@@ -1,4 +1,5 @@
-import type { ImageRecord, Orientation } from './types'
+import type { ImageRecord, LoadedImageRecord, Orientation } from './types'
+import { createPreviewUrl, readImage } from '../../imageProcessor'
 
 export const STANDARD_RATIOS = [
   { label: '1:1', value: 1 }, { label: '1:2', value: 1 / 2 }, { label: '2:1', value: 2 },
@@ -10,7 +11,7 @@ export const STANDARD_RATIOS = [
 ] as const
 
 const gcd = (a: number, b: number): number => b === 0 ? a : gcd(b, a % b)
-const extensions = new Set(['jpg', 'jpeg', 'png', 'webp', 'gif', 'bmp'])
+const extensions = new Set(['jpg', 'jpeg', 'png', 'webp', 'tif', 'tiff'])
 
 export const getOrientation = (width: number, height: number): Orientation => width === height ? '方图' : width > height ? '横图' : '竖图'
 export const simplifyRatio = (width: number, height: number) => {
@@ -32,23 +33,17 @@ export const isSupportedImage = (file: File) => {
   return file.size > 0 && extensions.has(extension) && (file.type === '' || file.type.startsWith('image/'))
 }
 
-export function readRecord(file: File, order: number): Promise<ImageRecord> {
-  return new Promise((resolve, reject) => {
-    const url = URL.createObjectURL(file)
-    const image = new Image()
-    const cleanup = () => URL.revokeObjectURL(url)
-    image.onload = () => {
-      const { naturalWidth: width, naturalHeight: height } = image
-      cleanup()
-      if (!width || !height) return reject(new Error('无法读取有效尺寸'))
-      const closest = findClosestRatio(width, height)
-      resolve({ id: crypto.randomUUID(), file, signature: fileSignature(file), order, name: file.name, width, height, size: file.size,
-        orientation: getOrientation(width, height), actualRatioText: simplifyRatio(width, height),
-        closestRatio: closest.label, errorPercent: closest.errorPercent })
-    }
-    image.onerror = () => { cleanup(); reject(new Error('图片损坏或格式无法解析')) }
-    image.src = url
-  })
+export async function readRecord(file: File, order: number): Promise<LoadedImageRecord> {
+  const decoded = await readImage(file)
+  try {
+    const { width, height } = decoded
+    if (!width || !height) throw new Error('无法读取有效尺寸')
+    const closest = findClosestRatio(width, height)
+    const previewUrl = await createPreviewUrl(file, decoded)
+    return { id: crypto.randomUUID(), file, signature: fileSignature(file), order, name: file.name, width, height, size: file.size,
+      orientation: getOrientation(width, height), actualRatioText: simplifyRatio(width, height),
+      closestRatio: closest.label, errorPercent: closest.errorPercent, previewUrl }
+  } finally { decoded.close() }
 }
 
 const headers = ['文件名', '宽度', '高度', '尺寸', '方向', '实际比例', '最接近比例', '误差', '文件大小']

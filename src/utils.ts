@@ -34,4 +34,10 @@ export function outputName(name: string, mime: string, ratio?: string): string {
   return `${base}${ratio ? `_${ratio.replace(':', '比')}` : ''}_resized.${ext}`
 }
 
-export const acceptedTypes = ['image/jpeg', 'image/png', 'image/webp']
+export const acceptedTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/tiff', 'image/x-tiff']
+const acceptedExtensions = new Set(['jpg', 'jpeg', 'png', 'webp', 'tif', 'tiff'])
+
+export function isAcceptedImage(file: File): boolean {
+  const extension = file.name.split('.').pop()?.toLowerCase() ?? ''
+  return file.size > 0 && acceptedExtensions.has(extension) && (file.type === '' || acceptedTypes.includes(file.type))
+}

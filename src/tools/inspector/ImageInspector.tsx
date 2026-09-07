@@ -33,22 +33,23 @@ export function ImageInspector() {
   const addFiles = async (files: File[]) => {
     const existing = new Set(tasks.map(item => fileSignature(item.file))); const seen = new Set<string>(); const valid: File[] = []
     let invalid = 0, duplicate = 0
-    files.forEach(file => { const signature = fileSignature(file); if (!isSupportedImage(file) || !['jpg', 'jpeg', 'png', 'webp'].includes(file.name.split('.').pop()?.toLowerCase() ?? '')) invalid += 1; else if (existing.has(signature) || seen.has(signature)) duplicate += 1; else { seen.add(signature); valid.push(file) } })
-    if (!valid.length) { notify(invalid ? '未添加：仅支持非空的 JPG、PNG、WEBP 图片' : '未添加：所选图片均已存在'); return }
+    files.forEach(file => { const signature = fileSignature(file); if (!isSupportedImage(file)) invalid += 1; else if (existing.has(signature) || seen.has(signature)) duplicate += 1; else { seen.add(signature); valid.push(file) } })
+    if (!valid.length) { notify(invalid ? '未添加：仅支持非空的 JPG、PNG、WEBP、TIFF 图片' : '未添加：所选图片均已存在'); return }
     setBusy(true)
     const settled = await Promise.allSettled(valid.map(async file => {
       const record = await readRecord(file, orderRef.current++)
       return {
         id: record.id, file, name: file.name, relativePath: file.webkitRelativePath || undefined,
-        format: (file.type.split('/')[1] || file.name.split('.').pop() || '').replace('jpeg', 'JPG').toUpperCase(),
+        format: (file.type.split('/')[1] || file.name.split('.').pop() || '').replace('jpeg', 'JPG').replace('x-tiff', 'TIFF').toUpperCase(),
         size: file.size, width: record.width, height: record.height, ratio: aspectRatio(record.width, record.height),
         closestRatio: record.closestRatio, ratioErrorPercent: record.errorPercent,
-        previewUrl: URL.createObjectURL(file), status: 'pending', progress: 0,
+        previewUrl: record.previewUrl, status: 'pending', progress: 0,
       } satisfies ImageTask
     }))
     const added = settled.flatMap(result => result.status === 'fulfilled' ? [result.value] : [])
+    const failed = settled.flatMap(result => result.status === 'rejected' ? [result.reason] : [])
     setTasks(current => [...current, ...added]); setBusy(false)
-    notify(`已添加 ${added.length} 张图片${invalid || duplicate ? `；忽略 ${invalid + duplicate} 个文件` : ''}`)
+    notify(`已添加 ${added.length} 张图片${invalid || duplicate ? `；忽略 ${invalid + duplicate} 个文件` : ''}${failed.length ? `；${failed.length} 个无法读取：${failed[0] instanceof Error ? failed[0].message : '格式解析失败'}` : ''}`)
   }
   const sorted = useMemo(() => [...records].sort((a, b) => {
     const av = a[sortKey], bv = b[sortKey]
@@ -84,7 +85,7 @@ export function ImageInspector() {
   const count = (orientation: string) => records.filter(item => item.orientation === orientation).length
   const patchTask = (id: string, patch: Partial<ImageTask>) => setTasks(current => current.map(task => task.id === id ? { ...task, ...patch } : task))
   const processTask = async (task: ImageTask) => {
-    if (inspectorMode === 'none' || (inspectorMode === 'over' && task.size <= limitMB * MB)) {
+    if (inspectorMode === 'none' || (inspectorMode === 'over' && task.file.type === 'image/jpeg' && task.size <= limitMB * MB)) {
       patchTask(task.id, { status: 'skipped', progress: 100, error: undefined })
       return task.file as File | Blob
     }
@@ -153,7 +154,7 @@ export function ImageInspector() {
     <section className="tool-intro"><div className="tool-intro-icon"><BarChart3 /></div><div><h1>比例检测与分组</h1><p>一次完成尺寸比例检测、超限图片压缩、比例命名和分组下载</p></div></section>
     {!records.length ? <section className="inspector-upload" role="button" tabIndex={0} onClick={choose} onKeyDown={event => (event.key === 'Enter' || event.key === ' ') && choose()}
       onDragOver={event => event.preventDefault()} onDrop={event => { event.preventDefault(); void handleDrop(event.dataTransfer) }}>
-      <ImagePlus size={36} /><strong>{busy ? '正在读取图片…' : '拖拽图片或文件夹到这里'}</strong><span>支持 JPG、JPEG、PNG、WEBP；图片在两个图片工具间共享</span>
+      <ImagePlus size={36} /><strong>{busy ? '正在读取图片…' : '拖拽图片或文件夹到这里'}</strong><span>支持 JPG、JPEG、PNG、WEBP、TIFF；图片在两个图片工具间共享</span>
       <div className="inspector-upload-actions"><button type="button" onClick={event => { event.stopPropagation(); choose() }}><ImagePlus size={15} />选择图片</button><button type="button" onClick={event => { event.stopPropagation(); chooseFolder() }}><FolderOpen size={15} />选择文件夹</button></div>
     </section> : <>
       <section className="inspector-stats"><div><span>图片总数</span><b>{records.length}</b></div><div><span>横图</span><b>{count('横图')}</b></div><div><span>竖图</span><b>{count('竖图')}</b></div><div><span>方图</span><b>{count('方图')}</b></div>
@@ -180,8 +181,8 @@ export function ImageInspector() {
       <div className="inspector-table"><table><thead><tr><th onClick={() => sort('order')}>序号</th><th onClick={() => sort('name')}>文件名</th><th>图片尺寸</th><th>方向</th><th>实际比例</th><th onClick={() => sort('closestRatio')}>最接近比例</th><th onClick={() => sort('errorPercent')}>误差</th><th>文件大小</th><th>操作</th></tr></thead>
         <tbody>{sorted.map((item, index) => <tr key={item.id}><td>{index + 1}</td><td title={item.name}>{item.name}</td><td><b>{item.width}</b> × <b>{item.height}</b> px</td><td><span className={`orient ${item.orientation}`}>{item.orientation}</span></td><td>{item.actualRatioText}</td><td><mark>{item.closestRatio}</mark></td><td>{formatError(item.errorPercent)}</td><td>{formatFileSize(item.size)}</td><td><button className="row-delete" onClick={() => setTasks(current => current.filter(task => task.id !== item.id))}>删除</button></td></tr>)}</tbody></table></div>
     </>}
-    <input ref={inputRef} type="file" multiple hidden accept=".jpg,.jpeg,.png,.webp" onChange={event => { void addFiles(Array.from(event.target.files ?? [])); event.target.value = '' }} />
-    <input ref={folderInputRef} type="file" multiple hidden accept=".jpg,.jpeg,.png,.webp" {...({ webkitdirectory: '', directory: '' } as Record<string, string>)} onChange={event => { void addFiles(Array.from(event.target.files ?? [])); event.target.value = '' }} />
+    <input ref={inputRef} type="file" multiple hidden accept=".jpg,.jpeg,.png,.webp,.tif,.tiff" onChange={event => { void addFiles(Array.from(event.target.files ?? [])); event.target.value = '' }} />
+    <input ref={folderInputRef} type="file" multiple hidden accept=".jpg,.jpeg,.png,.webp,.tif,.tiff" {...({ webkitdirectory: '', directory: '' } as Record<string, string>)} onChange={event => { void addFiles(Array.from(event.target.files ?? [])); event.target.value = '' }} />
     {notice && <div className="suite-toast">{notice}</div>}
   </div>
 }

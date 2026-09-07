@@ -1,9 +1,9 @@
 import { useRef, useState } from 'react'
 import JSZip from 'jszip'
 import { Archive, ArrowRight, BarChart3, CheckCircle2, Download, FolderOpen, FolderPlus, Home, ImageDown, ImagePlus, Lock, Play, RotateCcw, Settings2, ShieldCheck, Sparkles, Trash2, WandSparkles, XCircle, Zap } from 'lucide-react'
-import { readImage, resizeToTarget } from './imageProcessor'
+import { createPreviewUrl, readImage, resizeToTarget } from './imageProcessor'
 import type { ImageTask, TaskStatus } from './types'
-import { acceptedTypes, aspectRatio, formatBytes, MB, outputName, ratioName } from './utils'
+import { aspectRatio, formatBytes, isAcceptedImage, MB, outputName, ratioName } from './utils'
 import { ImageWorkspaceProvider, useImageWorkspace } from './imageWorkspace'
 import { findClosestRatio } from './tools/inspector/utils'
 import { ImageInspector } from './tools/inspector/ImageInspector'
@@ -64,9 +64,9 @@ function CompressionTool() {
   const addFiles = async (list: FileList | File[]) => {
     setMessage('')
     const files = Array.from(list)
-    const invalid = files.filter(file => !acceptedTypes.includes(file.type))
+    const invalid = files.filter(file => !isAcceptedImage(file))
     const existingKeys = new Set(tasksRef.current.map(task => `${task.relativePath || task.name}|${task.size}|${task.file.lastModified}`))
-    const supported = files.filter(file => acceptedTypes.includes(file.type))
+    const supported = files.filter(isAcceptedImage)
     const unique = supported.filter(file => {
       const key = `${file.webkitRelativePath || file.name}|${file.size}|${file.lastModified}`
       if (existingKeys.has(key)) return false
@@ -77,26 +77,31 @@ function CompressionTool() {
     const imported: ImageTask[] = []
     const errors: string[] = []
     for (const file of unique) {
+      let decoded: Awaited<ReturnType<typeof readImage>> | undefined
+      let previewUrl: string | undefined
       try {
-        const decoded = await readImage(file)
+        decoded = await readImage(file)
         const closest = findClosestRatio(decoded.width, decoded.height)
+        previewUrl = await createPreviewUrl(file, decoded)
         const task: ImageTask = {
           id: `${Date.now()}-${crypto.randomUUID()}`, file, name: file.name,
           relativePath: file.webkitRelativePath || undefined,
-          format: file.type.split('/')[1].replace('jpeg', 'JPG').toUpperCase(), size: file.size,
+          format: (file.type.split('/')[1] || file.name.split('.').pop() || '').replace('jpeg', 'JPG').replace('x-tiff', 'TIFF').toUpperCase(), size: file.size,
           width: decoded.width, height: decoded.height, ratio: aspectRatio(decoded.width, decoded.height),
           closestRatio: closest.label, ratioErrorPercent: closest.errorPercent,
-          previewUrl: URL.createObjectURL(file), status: 'pending', progress: 0,
+          previewUrl, status: 'pending', progress: 0,
         }
-        decoded.close()
         imported.push(task)
-      } catch { errors.push(file.name) }
+      } catch (error) {
+        if (previewUrl) URL.revokeObjectURL(previewUrl)
+        errors.push(`${file.name}：${error instanceof Error ? error.message : '无法读取'}`)
+      } finally { decoded?.close() }
     }
     if (imported.length) setTasks(current => [...current, ...imported])
     const notices = []
     if (invalid.length) notices.push(`已忽略 ${invalid.length} 个不支持的文件`)
     if (duplicateCount) notices.push(`已跳过 ${duplicateCount} 个重复文件`)
-    if (errors.length) notices.push(`${errors.length} 个图片无法读取`)
+    if (errors.length) notices.push(`${errors.length} 个图片无法读取（${errors[0]}）`)
     if (notices.length) setMessage(`${notices.join('；')}。`)
     if (inputRef.current) inputRef.current.value = ''
     if (folderInputRef.current) folderInputRef.current.value = ''
@@ -108,7 +113,7 @@ function CompressionTool() {
   }
 
   const processOne = async (task: ImageTask) => {
-    if (compressionMode === 'over' && task.size <= limitMB * MB) {
+    if (compressionMode === 'over' && task.file.type === 'image/jpeg' && task.size <= limitMB * MB) {
       patchTask(task.id, { status: 'skipped', progress: 100, error: undefined })
       return
     }
@@ -198,17 +203,17 @@ function CompressionTool() {
   return <div className="app">
     <main className="compress-main">
       <section className="compress-intro">
-        <div><span className="eyebrow"><WandSparkles size={14} /> 快速图片压缩</span><h1>让图片更轻，<em>清晰依旧</em></h1><p>批量压缩 JPG、PNG 与 WebP，同时检测标准比例并写入导出文件名。</p></div>
+        <div><span className="eyebrow"><WandSparkles size={14} /> 快速图片压缩</span><h1>让图片更轻，<em>清晰依旧</em></h1><p>批量处理 JPG、PNG、WebP 与 TIFF，统一导出 JPG，并将标准比例写入文件名。</p></div>
         <div className="local-pill"><span><ShieldCheck size={18} /></span><div><b>完全本地处理</b><small>文件不会离开你的设备</small></div></div>
       </section>
       <section className={`dropzone ${dragging ? 'dragging' : ''}`} onClick={() => inputRef.current?.click()}
         onDragOver={event => { event.preventDefault(); setDragging(true) }} onDragLeave={() => setDragging(false)}
         onDrop={event => { event.preventDefault(); setDragging(false); void handleDrop(event.dataTransfer) }}>
-        <input ref={inputRef} type="file" multiple accept=".jpg,.jpeg,.png,.webp" onChange={event => event.target.files && void addFiles(event.target.files)} />
-        <input ref={folderInputRef} type="file" multiple accept=".jpg,.jpeg,.png,.webp" {...({ webkitdirectory: '', directory: '' } as Record<string, string>)} onChange={event => event.target.files && void addFiles(event.target.files)} />
+        <input ref={inputRef} type="file" multiple accept=".jpg,.jpeg,.png,.webp,.tif,.tiff" onChange={event => event.target.files && void addFiles(event.target.files)} />
+        <input ref={folderInputRef} type="file" multiple accept=".jpg,.jpeg,.png,.webp,.tif,.tiff" {...({ webkitdirectory: '', directory: '' } as Record<string, string>)} onChange={event => event.target.files && void addFiles(event.target.files)} />
         <div className="upload-visual"><div className="upload-orbit orbit-one" /><div className="upload-orbit orbit-two" /><div className="upload-icon"><ImagePlus size={30} /></div></div>
         <strong>{dragging ? '松开即可添加图片' : '拖放图片到这里'}</strong>
-        <span>或从设备中选择，支持 JPG、PNG、WebP</span>
+        <span>或从设备中选择，支持 JPG、PNG、WebP、TIFF</span>
         <div className="upload-actions"><button className="upload-primary" type="button" onClick={event => { event.stopPropagation(); inputRef.current?.click() }}><ImagePlus size={16} />选择图片</button><button type="button" onClick={event => { event.stopPropagation(); folderInputRef.current?.click() }}><FolderOpen size={16} />选择文件夹</button></div>
         <div className="upload-note"><Lock size={12} /> 本地处理 · 无需上传 · 支持批量</div>
       </section>
@@ -224,7 +229,7 @@ function CompressionTool() {
           <div className="field"><label htmlFor="limit">平台限制</label><div className="input-unit"><input id="limit" type="number" min="0.1" step="0.1" value={limitMB} onChange={e => setLimitMB(+e.target.value)} /><span>MB</span></div></div>
           <div className="field"><label htmlFor="target">目标大小</label><div className="input-unit"><input id="target" type="number" min="0.1" step="0.1" value={targetMB} onChange={e => setTargetMB(+e.target.value)} /><span>MB</span></div></div>
         </div>
-        <p className="hint"><Sparkles size={13} /> 会优先降低像素尺寸并保持宽高比；PNG 将保留透明背景。</p>
+        <p className="hint"><Sparkles size={13} /> 会优先降低像素尺寸并保持宽高比；透明区域将转换为白色背景。</p>
       </section>
       <aside className="summary-card card">
         <div className="section-heading"><div className="section-title"><Zap size={18} /><div><h2>本次任务</h2><p>导入图片后实时统计</p></div></div><span className="step-tag">02</span></div>
@@ -259,7 +264,7 @@ const tools = [
 
 function SuiteHome({ onOpen }: { onOpen: (tool: ToolKey) => void }) {
   return <main className="suite-home"><section className="suite-hero"><div className="hero-copy"><span className="eyebrow"><Sparkles size={14} /> PixelFlow 本地工具箱</span><h1>让重复工作，<br/><em>轻一点。</em></h1><p>图片压缩、尺寸分析和文件夹整理，一个轻巧的本地工作台。文件不上传，打开就能用。</p><div className="hero-actions"><button className="hero-primary" onClick={() => onOpen('compress')}>开始压缩图片 <ArrowRight size={17} /></button><span><ShieldCheck size={15} /> 数据仅在你的设备中处理</span></div></div>
-      <button className="hero-showcase" onClick={() => onOpen('compress')} aria-label="打开图片压缩工具"><div className="showcase-glow"/><div className="showcase-window"><div className="showcase-top"><span/><span/><span/><small>图片压缩</small></div><div className="showcase-drop"><ImageDown size={34}/><b>拖放图片到这里</b><span>PNG · JPG · WebP</span></div><div className="showcase-result"><span>12 张图片</span><i/><b>-42%</b></div></div></button></section>
+      <button className="hero-showcase" onClick={() => onOpen('compress')} aria-label="打开图片压缩工具"><div className="showcase-glow"/><div className="showcase-window"><div className="showcase-top"><span/><span/><span/><small>图片压缩</small></div><div className="showcase-drop"><ImageDown size={34}/><b>拖放图片到这里</b><span>PNG · JPG · WebP · TIFF</span></div><div className="showcase-result"><span>12 张图片</span><i/><b>-42%</b></div></div></button></section>
     <section className="tools-heading"><div><span>为日常工作而生</span><h2>三个工具，一套流畅体验</h2></div><p>无需安装，无需登录，也无需等待上传。</p></section>
     <section className="suite-cards">{tools.map((tool, index) => <button key={tool.key} className={`suite-card ${tool.color} ${index === 0 ? 'featured' : ''}`} onClick={() => onOpen(tool.key)}><div className="suite-card-top"><div className="suite-card-icon"><tool.icon size={25} /></div>{index === 0 && <span>推荐</span>}</div><div><h2>{tool.title}</h2><p>{tool.description}</p><span className="card-link">打开工具 <ArrowRight size={14}/></span></div></button>)}</section>
     <section className="suite-privacy"><div className="privacy-icon"><Lock size={19} /></div><div><strong>你的文件，只属于你</strong><p>所有图片、表格内容与文件夹信息都在浏览器本地处理，不会上传到服务器。</p></div><span>Privacy first</span></section>
