@@ -113,15 +113,19 @@ function CompressionTool() {
   }
 
   const processOne = async (task: ImageTask) => {
-    if (compressionMode === 'over' && task.file.type === 'image/jpeg' && task.size <= limitMB * MB) {
+    const isJpg = task.file.type === 'image/jpeg' || /\.jpe?g$/i.test(task.name)
+    if (task.resultUrl) URL.revokeObjectURL(task.resultUrl)
+    patchTask(task.id, { result: undefined, resultUrl: undefined, resultWidth: undefined, resultHeight: undefined })
+    if (isJpg && (compressionMode === 'convert' || (compressionMode === 'over' && task.size <= limitMB * MB))) {
       patchTask(task.id, { status: 'skipped', progress: 100, error: undefined })
       return
     }
     patchTask(task.id, { status: 'processing', progress: 4, error: undefined })
     try {
-      if (task.resultUrl) URL.revokeObjectURL(task.resultUrl)
       const result = await resizeToTarget(task.file, {
         targetBytes: targetMB * MB,
+        conversionOnly: compressionMode === 'convert',
+        forceSmaller: compressionMode === 'all',
         onProgress: progress => patchTask(task.id, { progress }),
       })
       patchTask(task.id, {
@@ -135,7 +139,7 @@ function CompressionTool() {
 
   const processAll = async () => {
     if (!tasks.length || busy) return
-    if (targetMB <= 0 || limitMB <= 0 || targetMB >= limitMB) {
+    if (compressionMode !== 'convert' && (!Number.isFinite(targetMB) || !Number.isFinite(limitMB) || targetMB <= 0 || limitMB <= 0 || targetMB >= limitMB)) {
       setMessage('目标大小必须大于 0，并且小于限制大小。')
       return
     }
@@ -161,7 +165,7 @@ function CompressionTool() {
     // receive a complete ready-to-upload set instead of only resized files.
     const downloadable = tasks.flatMap(task => {
       if (task.status === 'done' && task.result) return [{ task, file: task.result, name: outputName(task.name, task.result.type, task.closestRatio) }]
-      if (includeOriginals && compressionMode === 'over' && task.status === 'skipped') return [{ task, file: task.file, name: ratioName(task.name, task.closestRatio) }]
+      if (includeOriginals && task.status === 'skipped') return [{ task, file: task.file, name: ratioName(task.name, task.closestRatio) }]
       return []
     })
     if (!downloadable.length) return
@@ -222,14 +226,14 @@ function CompressionTool() {
       <section className="settings card">
         <div className="section-heading"><div className="section-title"><Settings2 size={18} /><div><h2>压缩设置</h2><p>设定需要处理的图片和输出目标</p></div></div><span className="step-tag">01</span></div>
         <div className="setting-grid">
-          <div className="field mode-field"><label>处理范围</label><div className="segmented">
-            <button className={compressionMode === 'over' ? 'active' : ''} onClick={() => setCompressionMode('over')}>仅处理超限图片</button>
-            <button className={compressionMode === 'all' ? 'active' : ''} onClick={() => setCompressionMode('all')}>处理全部图片</button>
+          <div className="field mode-field"><label>处理范围</label><div className="segmented"><button disabled={busy} className={compressionMode === 'convert' ? 'active' : ''} onClick={() => setCompressionMode('convert')}>仅转格式</button>
+            <button disabled={busy} className={compressionMode === 'over' ? 'active' : ''} onClick={() => setCompressionMode('over')}>仅处理超限图片</button>
+            <button disabled={busy} className={compressionMode === 'all' ? 'active' : ''} onClick={() => setCompressionMode('all')}>处理全部图片</button>
           </div></div>
-          <div className="field"><label htmlFor="limit">平台限制</label><div className="input-unit"><input id="limit" type="number" min="0.1" step="0.1" value={limitMB} onChange={e => setLimitMB(+e.target.value)} /><span>MB</span></div></div>
-          <div className="field"><label htmlFor="target">目标大小</label><div className="input-unit"><input id="target" type="number" min="0.1" step="0.1" value={targetMB} onChange={e => setTargetMB(+e.target.value)} /><span>MB</span></div></div>
+          <div className="field"><label htmlFor="limit">平台限制</label><div className="input-unit"><input disabled={busy || compressionMode === 'convert'} id="limit" type="number" min="0.1" step="0.1" value={limitMB} onChange={e => setLimitMB(+e.target.value)} /><span>MB</span></div></div>
+          <div className="field"><label htmlFor="target">目标大小</label><div className="input-unit"><input disabled={busy || compressionMode === 'convert'} id="target" type="number" min="0.1" step="0.1" value={targetMB} onChange={e => setTargetMB(+e.target.value)} /><span>MB</span></div></div>
         </div>
-        <p className="hint"><Sparkles size={13} /> 会优先降低像素尺寸并保持宽高比；透明区域将转换为白色背景。</p>
+        <p className="hint"><Sparkles size={13} /> {compressionMode === 'convert' ? '仅将非 JPG 转为 JPG，保持像素尺寸；透明区域将转换为白色背景。' : '会优先降低像素尺寸并保持宽高比；透明区域将转换为白色背景。'}</p>
       </section>
       <aside className="summary-card card">
         <div className="section-heading"><div className="section-title"><Zap size={18} /><div><h2>本次任务</h2><p>导入图片后实时统计</p></div></div><span className="step-tag">02</span></div>
@@ -243,14 +247,14 @@ function CompressionTool() {
           <div className="task-list">{tasks.map((task, index) => <article className={`task task-${task.status}`} style={{ '--task-delay': `${Math.min(index, 8) * 45}ms` } as React.CSSProperties} key={task.id}>
             <div className="task-preview"><img src={task.previewUrl} alt="" /><span>{task.format}</span></div><div className="task-main"><div className="task-top"><div><h3 title={task.relativePath || task.name}>{task.name}</h3>{task.relativePath && <div className="folder-path"><FolderOpen size={12} />{task.relativePath.split('/').slice(0, -1).join(' / ')}</div>}<div className="meta"><span>{formatBytes(task.size)}</span><span>{task.width} × {task.height}</span><span>最近比例 {task.closestRatio}</span></div></div><span className={`status ${task.status}`}>{labels[task.status]}</span></div>
             {task.status === 'processing' && <div className="progress"><div style={{ width: `${task.progress}%` }} /><span>{task.progress}%</span></div>}
-            {task.status === 'done' && <div className="result"><CheckCircle2 size={16} /><span>新尺寸 {task.resultWidth} × {task.resultHeight}</span><span>新大小 {formatBytes(task.result!.size)}</span><b>减少 {Math.max(0, (1 - task.result!.size / task.size) * 100).toFixed(1)}%</b></div>}
-            {task.status === 'skipped' && <div className="subtle">文件未超过 {limitMB} MB，无需处理</div>}
+            {task.status === 'done' && <div className="result"><CheckCircle2 size={16} />{task.result?.type === 'image/jpeg' && task.file.type !== 'image/jpeg' && !/\.jpe?g$/i.test(task.name) && <strong>已转为 JPG</strong>}<span>新尺寸 {task.resultWidth} × {task.resultHeight}</span><span>新大小 {formatBytes(task.result!.size)}</span><b>减少 {Math.max(0, (1 - task.result!.size / task.size) * 100).toFixed(1)}%</b></div>}
+            {task.status === 'skipped' && <div className="subtle">{compressionMode === 'convert' ? '已是 JPG，无需转换' : `文件未超过 ${limitMB} MB，无需处理`}</div>}
             {task.status === 'error' && <div className="error-text"><XCircle size={15} />{task.error}</div>}
             </div><div className="task-actions">{task.status === 'done' && <button title="下载" onClick={() => download(task)}><Download size={18} /></button>}<button title="删除" disabled={busy} onClick={() => remove(task)}><Trash2 size={18} /></button></div>
           </article>)}</div>}
       </section>
     </main>
-    <footer><div><strong>{tasks.length || '尚未添加'}{tasks.length ? ' 张图片' : ''}</strong><span>{completedCount ? ` · ${completedCount} 张已完成` : ' · 所有处理均在本地完成'}</span></div><div className="footer-actions"><button className="secondary" disabled={!completedCount || busy} onClick={() => void downloadAll()}><Download size={17} />下载压缩图片</button><button className="secondary" disabled={!downloadableCount || busy} onClick={() => void downloadAll(true)}><Archive size={17} />下载全部图片</button><button className="primary" disabled={!tasks.length || busy} onClick={() => void processAll()}>{busy ? <RotateCcw className="spin" size={18} /> : <Play size={17} fill="currentColor" />}{busy ? '正在处理…' : `开始压缩${tasks.length ? ` · ${tasks.length}` : ''}`}</button></div></footer>
+    <footer><div><strong>{tasks.length || '尚未添加'}{tasks.length ? ' 张图片' : ''}</strong><span>{completedCount ? ` · ${completedCount} 张已完成` : ' · 所有处理均在本地完成'}</span></div><div className="footer-actions"><button className="secondary" disabled={!completedCount || busy} onClick={() => void downloadAll()}><Download size={17} />{compressionMode === 'convert' ? '下载转换图片' : '下载压缩图片'}</button><button className="secondary" disabled={!downloadableCount || busy} onClick={() => void downloadAll(true)}><Archive size={17} />下载全部图片</button><button className="primary" disabled={!tasks.length || busy} onClick={() => void processAll()}>{busy ? <RotateCcw className="spin" size={18} /> : <Play size={17} fill="currentColor" />}{busy ? '正在处理…' : `${compressionMode === 'convert' ? '开始转换' : '开始压缩'}${tasks.length ? ` · ${tasks.length}` : ''}`}</button></div></footer>
   </div>
 }
 
@@ -263,10 +267,10 @@ const tools = [
 ]
 
 function SuiteHome({ onOpen }: { onOpen: (tool: ToolKey) => void }) {
-  return <main className="suite-home"><section className="suite-hero"><div className="hero-copy"><span className="eyebrow"><Sparkles size={14} /> PixelFlow 本地工具箱</span><h1>让重复工作，<br/><em>轻一点。</em></h1><p>图片压缩、尺寸分析和文件夹整理，一个轻巧的本地工作台。文件不上传，打开就能用。</p><div className="hero-actions"><button className="hero-primary" onClick={() => onOpen('compress')}>开始压缩图片 <ArrowRight size={17} /></button><span><ShieldCheck size={15} /> 数据仅在你的设备中处理</span></div></div>
+  return <main className="suite-home"><section className="suite-hero"><div className="hero-copy"><h1>让重复工作，<br/><em>轻一点。</em></h1><div className="hero-actions"><button className="hero-primary" onClick={() => onOpen('compress')}>开始压缩图片 <ArrowRight size={17} /></button></div></div>
       <button className="hero-showcase" onClick={() => onOpen('compress')} aria-label="打开图片压缩工具"><div className="showcase-glow"/><div className="showcase-window"><div className="showcase-top"><span/><span/><span/><small>图片压缩</small></div><div className="showcase-drop"><ImageDown size={34}/><b>拖放图片到这里</b><span>PNG · JPG · WebP · TIFF</span></div><div className="showcase-result"><span>12 张图片</span><i/><b>-42%</b></div></div></button></section>
-    <section className="tools-heading"><div><span>为日常工作而生</span><h2>三个工具，一套流畅体验</h2></div><p>无需安装，无需登录，也无需等待上传。</p></section>
-    <section className="suite-cards">{tools.map((tool, index) => <button key={tool.key} className={`suite-card ${tool.color} ${index === 0 ? 'featured' : ''}`} onClick={() => onOpen(tool.key)}><div className="suite-card-top"><div className="suite-card-icon"><tool.icon size={25} /></div>{index === 0 && <span>推荐</span>}</div><div><h2>{tool.title}</h2><p>{tool.description}</p><span className="card-link">打开工具 <ArrowRight size={14}/></span></div></button>)}</section>
+    <section className="tools-heading"><div><span>为日常工作而生</span><h2>三个工具，一套流畅体验</h2></div></section>
+    <section className="suite-cards">{tools.map((tool, index) => <button key={tool.key} className={`suite-card ${tool.color} ${index === 0 ? 'featured' : ''}`} onClick={() => onOpen(tool.key)}><div className="suite-card-top"><div className="suite-card-icon"><tool.icon size={25} /></div></div><div><h2>{tool.title}</h2><p>{tool.description}</p></div></button>)}</section>
     <section className="suite-privacy"><div className="privacy-icon"><Lock size={19} /></div><div><strong>你的文件，只属于你</strong><p>所有图片、表格内容与文件夹信息都在浏览器本地处理，不会上传到服务器。</p></div><span>Privacy first</span></section>
   </main>
 }

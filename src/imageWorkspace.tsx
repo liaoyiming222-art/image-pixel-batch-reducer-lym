@@ -3,7 +3,7 @@ import type { Dispatch, ReactNode, SetStateAction } from 'react'
 import type { ImageTask } from './types'
 
 export type ProcessMode = 'none' | 'over' | 'all'
-export type CompressionMode = 'over' | 'all'
+export type CompressionMode = 'convert' | 'over' | 'all'
 
 interface ImageWorkspaceValue {
   tasks: ImageTask[]

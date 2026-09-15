@@ -77,10 +77,11 @@ export async function createPreviewUrl(file: File, decoded: Decoded): Promise<st
 const OUTPUT_QUALITY = 0.9
 const OUTPUT_TYPE = 'image/jpeg'
 const OUTPUT_BACKGROUND = '#ffffff'
-const MIN_SCALE = 0.02
 const MAX_ATTEMPTS = 5
 
 export async function resizeToTarget(file: File, options: ProcessOptions) {
+  if (!options.conversionOnly && (!Number.isFinite(options.targetBytes) || options.targetBytes <= 0)) throw new Error('目标大小必须大于 0')
+  const targetBytes = options.forceSmaller ? Math.min(options.targetBytes, file.size - 1) : options.targetBytes
   const decoded = await readImage(file)
   const canvas = document.createElement('canvas')
   const context = canvas.getContext('2d', { alpha: false })
@@ -104,25 +105,23 @@ export async function resizeToTarget(file: File, options: ProcessOptions) {
   }
 
   try {
-    // File size generally follows pixel area. Start close to the expected scale,
-    // then correct from the actual encoded size. This normally needs 1–3 encodes
-    // instead of a fixed 11-pass binary search.
-    let scale = Math.min(0.99, Math.max(MIN_SCALE, Math.sqrt(options.targetBytes / file.size) * 0.92))
-
+    // Measure the actual JPEG first: source formats have different compression ratios.
+    const original = await encode(1)
+    options.onProgress?.(10)
+    if (options.conversionOnly || original.blob.size <= targetBytes) return original
+    const minScale = 1 / Math.max(decoded.width, decoded.height)
+    let previous = original
     for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt += 1) {
+      // Estimate from the last actual JPEG, leaving a small margin to avoid extra encodes.
+      const correction = Math.min(0.95, Math.sqrt(Math.max(0, targetBytes) / previous.blob.size) * 0.95)
+      const scale = Math.max(minScale, previous.scale * correction)
       const result = await encode(scale)
       options.onProgress?.(10 + Math.round((attempt / MAX_ATTEMPTS) * 85))
-      if (result.blob.size <= options.targetBytes) return result
-
-      const correction = Math.sqrt(options.targetBytes / result.blob.size) * 0.9
-      const nextScale = Math.max(MIN_SCALE, scale * Math.min(0.9, correction))
-      if (nextScale === scale || scale === MIN_SCALE) break
-      scale = nextScale
+      if (result.blob.size <= targetBytes) return result
+      if (scale === minScale) throw new Error('目标大小过小，无法生成有效 JPG，请提高目标大小')
+      previous = result
     }
-
-    const smallest = await encode(MIN_SCALE)
-    if (smallest.blob.size <= options.targetBytes) return smallest
-    throw new Error('即使缩至最小尺寸仍无法达到目标大小，请提高目标大小')
+    throw new Error('快速压缩未能达到目标大小，请提高目标大小后重试')
   } finally {
     canvas.width = 1
     canvas.height = 1
