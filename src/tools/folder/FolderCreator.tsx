@@ -91,7 +91,7 @@ export function FolderCreator() {
     setWorking(false); setNotice(`处理完成：创建 ${created} 个，跳过 ${skipped} 个，失败 ${failed} 个。`)
   }
   return <div className="folder-page">
-    <section className="tool-intro"><div className="tool-intro-icon"><FolderPlus /></div><div><h1>AI 需求文件夹批量创建</h1><p>从 Excel / WPS 复制数据，检查命名后直接在指定位置批量创建文件夹</p></div></section>
+    <section className="tool-intro"><div className="tool-intro-icon"><FolderPlus /></div><div><h1>文件夹批量创建</h1><p>粘贴需求表，批量生成规范文件夹。</p></div></section>
     <section className="folder-card"><h2>1. 粘贴表格内容</h2><div className="folder-toolbar"><button onClick={() => void paste()}><ClipboardPaste size={16} />从剪贴板粘贴</button><button className="primary" onClick={parse}><Play size={16} />解析内容</button><button onClick={() => { setSource(''); setRows([]) }}><Trash2 size={16} />清空</button><span>支持 Excel/WPS 多行和单元格内换行</span></div>
       <textarea value={source} onChange={event => setSource(event.target.value)} placeholder="在这里粘贴 Excel / WPS 中复制的内容。无表头时默认读取第1列和第5列。" />
       <div className="folder-mapping"><label><input type="checkbox" checked={hasHeader} onChange={event => setHasHeader(event.target.checked)} /> 第一行是表头</label><label>需求名称列：<select value={nameColumn} onChange={event => setNameColumn(+event.target.value)}>{labels.map((label, index) => <option key={index} value={index}>{label}</option>)}</select></label><label>需求说明列：<select value={Math.min(detailColumn, maxColumns - 1)} onChange={event => setDetailColumn(+event.target.value)}>{labels.map((label, index) => <option key={index} value={index}>{label}</option>)}</select></label></div>

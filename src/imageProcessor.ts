@@ -81,6 +81,7 @@ const MAX_ATTEMPTS = 5
 
 export async function resizeToTarget(file: File, options: ProcessOptions) {
   if (!options.conversionOnly && (!Number.isFinite(options.targetBytes) || options.targetBytes <= 0)) throw new Error('目标大小必须大于 0')
+  if (!options.conversionOnly && options.edgeLimit !== undefined && (!Number.isInteger(options.edgeLimit) || !Number.isInteger(options.edgeTarget) || options.edgeTarget! <= 0 || options.edgeTarget! >= options.edgeLimit)) throw new Error('目标最长边必须为正整数，且小于最长边限制')
   const targetBytes = options.forceSmaller ? Math.min(options.targetBytes, file.size - 1) : options.targetBytes
   const decoded = await readImage(file)
   const canvas = document.createElement('canvas')
@@ -106,9 +107,11 @@ export async function resizeToTarget(file: File, options: ProcessOptions) {
 
   try {
     // Measure the actual JPEG first: source formats have different compression ratios.
-    const original = await encode(1)
+    const longest = Math.max(decoded.width, decoded.height)
+    const scale = !options.conversionOnly && options.edgeLimit !== undefined && longest > options.edgeLimit ? options.edgeTarget! / longest : 1
+    const original = await encode(scale)
     options.onProgress?.(10)
-    if (options.conversionOnly || original.blob.size <= targetBytes) return original
+    if (options.conversionOnly || (options.limitBytes !== undefined && original.blob.size <= options.limitBytes) || original.blob.size <= targetBytes) return original
     const minScale = 1 / Math.max(decoded.width, decoded.height)
     let previous = original
     for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt += 1) {

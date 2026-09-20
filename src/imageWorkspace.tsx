@@ -15,6 +15,11 @@ interface ImageWorkspaceValue {
   setInspectorMode: Dispatch<SetStateAction<ProcessMode>>
   limitMB: number
   setLimitMB: Dispatch<SetStateAction<number>>
+  edgeEnabled: boolean
+  edgeLimit: number
+  setEdgeLimit: Dispatch<SetStateAction<number>>
+  edgeTarget: number
+  setEdgeTarget: Dispatch<SetStateAction<number>>
   targetMB: number
   setTargetMB: Dispatch<SetStateAction<number>>
 }
@@ -27,13 +32,16 @@ export function ImageWorkspaceProvider({ children }: { children: ReactNode }) {
   const [compressionMode, setCompressionMode] = useState<CompressionMode>('over')
   const [inspectorMode, setInspectorMode] = useState<ProcessMode>('over')
   const [limitMB, setLimitMB] = useState(10)
+  const edgeEnabled = true
+  const [edgeLimit, setEdgeLimit] = useState(8000)
+  const [edgeTarget, setEdgeTarget] = useState(6000)
   const [targetMB, setTargetMB] = useState(5)
   useEffect(() => { tasksRef.current = tasks }, [tasks])
   useEffect(() => () => tasksRef.current.forEach(task => {
     URL.revokeObjectURL(task.previewUrl)
     if (task.resultUrl) URL.revokeObjectURL(task.resultUrl)
   }), [])
-  return <ImageWorkspaceContext.Provider value={{ tasks, setTasks, tasksRef, compressionMode, setCompressionMode, inspectorMode, setInspectorMode, limitMB, setLimitMB, targetMB, setTargetMB }}>
+  return <ImageWorkspaceContext.Provider value={{ edgeEnabled, edgeLimit, setEdgeLimit, edgeTarget, setEdgeTarget, tasks, setTasks, tasksRef, compressionMode, setCompressionMode, inspectorMode, setInspectorMode, limitMB, setLimitMB, targetMB, setTargetMB }}>
     {children}
   </ImageWorkspaceContext.Provider>
 }

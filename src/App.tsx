@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react'
 import JSZip from 'jszip'
-import { Archive, ArrowRight, BarChart3, CheckCircle2, Download, FolderOpen, FolderPlus, Home, ImageDown, ImagePlus, Lock, Play, RotateCcw, Settings2, ShieldCheck, Sparkles, Trash2, WandSparkles, XCircle, Zap } from 'lucide-react'
+import { Archive, BarChart3, CheckCircle2, Download, FolderOpen, FolderPlus, Home, ImageDown, ImagePlus, Lock, Play, RotateCcw, Settings2, Sparkles, Trash2, XCircle, Zap } from 'lucide-react'
 import { createPreviewUrl, readImage, resizeToTarget } from './imageProcessor'
 import type { ImageTask, TaskStatus } from './types'
 import { aspectRatio, formatBytes, isAcceptedImage, MB, outputName, ratioName } from './utils'
@@ -53,7 +53,7 @@ async function filesFromDrop(dataTransfer: DataTransfer): Promise<File[]> {
 }
 
 function CompressionTool() {
-  const { tasks, setTasks, tasksRef, compressionMode, setCompressionMode, limitMB, setLimitMB, targetMB, setTargetMB } = useImageWorkspace()
+  const { tasks, setTasks, tasksRef, compressionMode, setCompressionMode, limitMB, setLimitMB, targetMB, setTargetMB, edgeEnabled, edgeLimit, setEdgeLimit, edgeTarget, setEdgeTarget } = useImageWorkspace()
   const [dragging, setDragging] = useState(false)
   const [busy, setBusy] = useState(false)
   const [message, setMessage] = useState('')
@@ -116,14 +116,14 @@ function CompressionTool() {
     const isJpg = task.file.type === 'image/jpeg' || /\.jpe?g$/i.test(task.name)
     if (task.resultUrl) URL.revokeObjectURL(task.resultUrl)
     patchTask(task.id, { result: undefined, resultUrl: undefined, resultWidth: undefined, resultHeight: undefined })
-    if (isJpg && (compressionMode === 'convert' || (compressionMode === 'over' && task.size <= limitMB * MB))) {
+    if (isJpg && (compressionMode === 'convert' || (compressionMode === 'over' && task.size <= limitMB * MB && (!edgeEnabled || Math.max(task.width, task.height) <= edgeLimit)))) {
       patchTask(task.id, { status: 'skipped', progress: 100, error: undefined })
       return
     }
     patchTask(task.id, { status: 'processing', progress: 4, error: undefined })
     try {
       const result = await resizeToTarget(task.file, {
-        targetBytes: targetMB * MB,
+        targetBytes: targetMB * MB, limitBytes: compressionMode === 'over' ? limitMB * MB : undefined, edgeLimit: edgeEnabled ? edgeLimit : undefined, edgeTarget,
         conversionOnly: compressionMode === 'convert',
         forceSmaller: compressionMode === 'all',
         onProgress: progress => patchTask(task.id, { progress }),
@@ -143,6 +143,7 @@ function CompressionTool() {
       setMessage('目标大小必须大于 0，并且小于限制大小。')
       return
     }
+    if (compressionMode !== 'convert' && edgeEnabled && (!Number.isInteger(edgeLimit) || !Number.isInteger(edgeTarget) || edgeTarget <= 0 || edgeTarget >= edgeLimit)) { setMessage('目标最长边必须为正整数，且小于最长边限制'); return }
     setMessage('')
     setBusy(true)
     const queue = [...tasks]
@@ -206,10 +207,7 @@ function CompressionTool() {
 
   return <div className="app">
     <main className="compress-main">
-      <section className="compress-intro">
-        <div><span className="eyebrow"><WandSparkles size={14} /> 快速图片压缩</span><h1>让图片更轻，<em>清晰依旧</em></h1><p>批量处理 JPG、PNG、WebP 与 TIFF，统一导出 JPG，并将标准比例写入文件名。</p></div>
-        <div className="local-pill"><span><ShieldCheck size={18} /></span><div><b>完全本地处理</b><small>文件不会离开你的设备</small></div></div>
-      </section>
+      <section className="tool-intro compress-tool-intro"><div className="tool-intro-icon"><ImageDown /></div><div><h1>快速图片压缩</h1><p>转换 JPG，控制文件大小与最长边。</p></div></section>
       <section className={`dropzone ${dragging ? 'dragging' : ''}`} onClick={() => inputRef.current?.click()}
         onDragOver={event => { event.preventDefault(); setDragging(true) }} onDragLeave={() => setDragging(false)}
         onDrop={event => { event.preventDefault(); setDragging(false); void handleDrop(event.dataTransfer) }}>
@@ -224,31 +222,30 @@ function CompressionTool() {
       {message && <div className="alert"><XCircle size={17} />{message}</div>}
       <div className="workspace-grid">
       <section className="settings card">
-        <div className="section-heading"><div className="section-title"><Settings2 size={18} /><div><h2>压缩设置</h2><p>设定需要处理的图片和输出目标</p></div></div><span className="step-tag">01</span></div>
-        <div className="setting-grid">
+        <div className="section-heading"><div className="section-title"><Settings2 size={18} /><div><h2>压缩设置</h2><p>设定需要处理的图片和输出目标</p></div></div></div>
+        <div className="setting-grid compact-settings">
           <div className="field mode-field"><label>处理范围</label><div className="segmented"><button disabled={busy} className={compressionMode === 'convert' ? 'active' : ''} onClick={() => setCompressionMode('convert')}>仅转格式</button>
             <button disabled={busy} className={compressionMode === 'over' ? 'active' : ''} onClick={() => setCompressionMode('over')}>仅处理超限图片</button>
             <button disabled={busy} className={compressionMode === 'all' ? 'active' : ''} onClick={() => setCompressionMode('all')}>处理全部图片</button>
           </div></div>
-          <div className="field"><label htmlFor="limit">平台限制</label><div className="input-unit"><input disabled={busy || compressionMode === 'convert'} id="limit" type="number" min="0.1" step="0.1" value={limitMB} onChange={e => setLimitMB(+e.target.value)} /><span>MB</span></div></div>
+          <div className="field"><label htmlFor="limit">大小限制</label><div className="input-unit"><input disabled={busy || compressionMode === 'convert'} id="limit" type="number" min="0.1" step="0.1" value={limitMB} onChange={e => setLimitMB(+e.target.value)} /><span>MB</span></div></div>
           <div className="field"><label htmlFor="target">目标大小</label><div className="input-unit"><input disabled={busy || compressionMode === 'convert'} id="target" type="number" min="0.1" step="0.1" value={targetMB} onChange={e => setTargetMB(+e.target.value)} /><span>MB</span></div></div>
-        </div>
-        <p className="hint"><Sparkles size={13} /> {compressionMode === 'convert' ? '仅将非 JPG 转为 JPG，保持像素尺寸；透明区域将转换为白色背景。' : '会优先降低像素尺寸并保持宽高比；透明区域将转换为白色背景。'}</p>
+        <div className="dimension-grid"><div className="field"><label htmlFor="edge-limit" title="按图片最长边判断">尺寸限制</label><div className="input-unit"><input id="edge-limit" aria-label="尺寸限制（最长边）" type="number" min="2" step="1" value={edgeLimit} disabled={busy || compressionMode === 'convert'} onChange={event => setEdgeLimit(+event.target.value)} /><span>px</span></div></div><div className="field"><label htmlFor="edge-target" title="等比例缩小后的最长边">目标尺寸</label><div className="input-unit"><input id="edge-target" aria-label="目标尺寸（最长边）" type="number" min="1" step="1" value={edgeTarget} disabled={busy || compressionMode === 'convert'} onChange={event => setEdgeTarget(+event.target.value)} /><span>px</span></div></div></div></div><p className="hint"><Sparkles size={13} />保持宽高比，透明区域填充白色。</p>
       </section>
       <aside className="summary-card card">
-        <div className="section-heading"><div className="section-title"><Zap size={18} /><div><h2>本次任务</h2><p>导入图片后实时统计</p></div></div><span className="step-tag">02</span></div>
+        <div className="section-heading"><div className="section-title"><Zap size={18} /><div><h2>本次任务</h2><p>导入图片后实时统计</p></div></div></div>
         <div className="summary-stats"><div><span>图片数量</span><b>{tasks.length}<small> 张</small></b></div><div><span>原始大小</span><b>{formatBytes(totalSize)}</b></div></div>
-        <div className="saving-meter"><div><span>已节省空间</span><b>{savedPercent.toFixed(0)}%</b></div><div className="meter-track"><i style={{ width: `${savedPercent}%` }} /></div></div>
+        <div className="saving-meter"><div><span>已节省空间</span><b>{completedCount ? `${savedPercent.toFixed(0)}%` : '—'}</b></div><div className="meter-track"><i style={{ width: `${savedPercent}%` }} /></div></div>
       </aside>
       </div>
       <section className="tasks card">
         <div className="tasks-head"><div className="section-title"><ImagePlus size={18} /><div><h2>图片队列 <span className="count">{tasks.length}</span></h2><p>压缩状态和结果会在这里实时更新</p></div></div>{tasks.length > 0 && <button className="text-danger" disabled={busy} onClick={clear}><Trash2 size={15} />清空全部</button>}</div>
         {!tasks.length ? <div className="empty"><span className="empty-icon"><ImagePlus size={25} /></span><p>图片队列还是空的</p><span>把图片拖到上方，准备好后即可开始压缩</span></div> :
           <div className="task-list">{tasks.map((task, index) => <article className={`task task-${task.status}`} style={{ '--task-delay': `${Math.min(index, 8) * 45}ms` } as React.CSSProperties} key={task.id}>
-            <div className="task-preview"><img src={task.previewUrl} alt="" /><span>{task.format}</span></div><div className="task-main"><div className="task-top"><div><h3 title={task.relativePath || task.name}>{task.name}</h3>{task.relativePath && <div className="folder-path"><FolderOpen size={12} />{task.relativePath.split('/').slice(0, -1).join(' / ')}</div>}<div className="meta"><span>{formatBytes(task.size)}</span><span>{task.width} × {task.height}</span><span>最近比例 {task.closestRatio}</span></div></div><span className={`status ${task.status}`}>{labels[task.status]}</span></div>
+            <div className="task-preview"><img src={task.previewUrl} alt="" /><span>{task.format}</span></div><div className="task-main"><div className="task-top"><div><h3 title={task.relativePath || task.name}>{task.name}</h3>{task.relativePath && <div className="folder-path"><FolderOpen size={12} />{task.relativePath.split('/').slice(0, -1).join(' / ')}</div>}<div className="meta"><span>{formatBytes(task.size)}</span><span>{task.width} × {task.height}</span><span>最近比例 {task.closestRatio}</span>{edgeEnabled && compressionMode !== 'convert' && Math.max(task.width, task.height) > edgeLimit && <span>最长边超限</span>}{compressionMode !== 'convert' && task.size > limitMB * MB && <span>文件大小超限</span>}</div></div><span className={`status ${task.status}`}>{labels[task.status]}</span></div>
             {task.status === 'processing' && <div className="progress"><div style={{ width: `${task.progress}%` }} /><span>{task.progress}%</span></div>}
-            {task.status === 'done' && <div className="result"><CheckCircle2 size={16} />{task.result?.type === 'image/jpeg' && task.file.type !== 'image/jpeg' && !/\.jpe?g$/i.test(task.name) && <strong>已转为 JPG</strong>}<span>新尺寸 {task.resultWidth} × {task.resultHeight}</span><span>新大小 {formatBytes(task.result!.size)}</span><b>减少 {Math.max(0, (1 - task.result!.size / task.size) * 100).toFixed(1)}%</b></div>}
-            {task.status === 'skipped' && <div className="subtle">{compressionMode === 'convert' ? '已是 JPG，无需转换' : `文件未超过 ${limitMB} MB，无需处理`}</div>}
+            {task.status === 'done' && <div className="result"><CheckCircle2 size={16} />{task.result?.type === 'image/jpeg' && task.file.type !== 'image/jpeg' && !/\.jpe?g$/i.test(task.name) && <strong>已转为 JPG</strong>}{(task.resultWidth !== task.width || task.resultHeight !== task.height) && <strong>已调整尺寸</strong>}<span>新尺寸 {task.resultWidth} × {task.resultHeight}</span><span>新大小 {formatBytes(task.result!.size)}</span><b>减少 {Math.max(0, (1 - task.result!.size / task.size) * 100).toFixed(1)}%</b></div>}
+            {task.status === 'skipped' && <div className="subtle">{compressionMode === 'convert' ? '已是 JPG，无需转换' : `文件大小${edgeEnabled ? '和最长边均' : ''}未超限，无需处理`}</div>}
             {task.status === 'error' && <div className="error-text"><XCircle size={15} />{task.error}</div>}
             </div><div className="task-actions">{task.status === 'done' && <button title="下载" onClick={() => download(task)}><Download size={18} /></button>}<button title="删除" disabled={busy} onClick={() => remove(task)}><Trash2 size={18} /></button></div>
           </article>)}</div>}
@@ -261,17 +258,23 @@ function CompressionTool() {
 type ToolKey = 'home' | 'compress' | 'inspect' | 'folders'
 
 const tools = [
-  { key: 'compress' as const, title: '快速图片压缩', description: '快速处理平台大小限制，自动检测比例并写入导出文件名', icon: ImageDown, color: 'blue' },
-  { key: 'inspect' as const, title: '比例检测与分组', description: '按标准比例整理图片，下载时可自动压缩超限文件', icon: BarChart3, color: 'purple' },
-  { key: 'folders' as const, title: '文件夹批量创建', description: '解析 Excel / WPS 需求，按统一规则批量创建文件夹', icon: FolderPlus, color: 'green' },
+  { key: 'compress' as const, title: '快速图片压缩', description: '转换 JPG，控制文件大小与最长边。', icon: ImageDown, color: 'blue' },
+  { key: 'inspect' as const, title: '比例检测与分组', description: '读取图片尺寸，按画幅比例整理下载。', icon: BarChart3, color: 'purple' },
+  { key: 'folders' as const, title: '文件夹批量创建', description: '粘贴需求表，批量生成规范文件夹。', icon: FolderPlus, color: 'green' },
 ]
 
 function SuiteHome({ onOpen }: { onOpen: (tool: ToolKey) => void }) {
-  return <main className="suite-home"><section className="suite-hero"><div className="hero-copy"><h1>让重复工作，<br/><em>轻一点。</em></h1><div className="hero-actions"><button className="hero-primary" onClick={() => onOpen('compress')}>开始压缩图片 <ArrowRight size={17} /></button></div></div>
-      <button className="hero-showcase" onClick={() => onOpen('compress')} aria-label="打开图片压缩工具"><div className="showcase-glow"/><div className="showcase-window"><div className="showcase-top"><span/><span/><span/><small>图片压缩</small></div><div className="showcase-drop"><ImageDown size={34}/><b>拖放图片到这里</b><span>PNG · JPG · WebP · TIFF</span></div><div className="showcase-result"><span>12 张图片</span><i/><b>-42%</b></div></div></button></section>
-    <section className="tools-heading"><div><span>为日常工作而生</span><h2>三个工具，一套流畅体验</h2></div></section>
-    <section className="suite-cards">{tools.map((tool, index) => <button key={tool.key} className={`suite-card ${tool.color} ${index === 0 ? 'featured' : ''}`} onClick={() => onOpen(tool.key)}><div className="suite-card-top"><div className="suite-card-icon"><tool.icon size={25} /></div></div><div><h2>{tool.title}</h2><p>{tool.description}</p></div></button>)}</section>
-    <section className="suite-privacy"><div className="privacy-icon"><Lock size={19} /></div><div><strong>你的文件，只属于你</strong><p>所有图片、表格内容与文件夹信息都在浏览器本地处理，不会上传到服务器。</p></div><span>Privacy first</span></section>
+  return <main className="suite-home home-redesign">
+    <header className="home-heading"><h1>让重复工作，<em>轻一点。</em></h1></header>
+    <section className="suite-cards">{tools.map(tool => <button key={tool.key} className={`suite-card ${tool.color}`} onClick={() => onOpen(tool.key)}>
+      <div className="suite-card-icon"><tool.icon size={25} /></div><h2>{tool.title}</h2><p>{tool.description}</p>
+      <div className={`tool-art art-${tool.key}`} aria-hidden="true">
+        {tool.key === 'compress' && <><div className="picture-sheet back"><ImagePlus size={38}/></div><div className="picture-sheet front"><ImageDown size={36}/><span>JPG</span></div><div className="art-line"/></>}
+        {tool.key === 'inspect' && <><div className="ratio-shape portrait">2:3</div><div className="ratio-shape square">1:1</div><div className="ratio-shape landscape">3:2</div></>}
+        {tool.key === 'folders' && <div className="folder-tree"><div><FolderOpen size={22}/><span>项目素材</span></div><div className="tree-child"><FolderPlus size={18}/><span>AI</span></div><div className="tree-child"><FolderPlus size={18}/><span>原图</span></div></div>}
+      </div>
+    </button>)}</section>
+    <div className="home-privacy"><Lock size={14}/>文件仅在本地处理，不上传服务器。</div>
   </main>
 }
 
