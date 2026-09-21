@@ -229,6 +229,7 @@ function CompressionTool() {
           <div className="field"><label htmlFor="limit">大小限制</label><div className="input-unit"><input disabled={busy || compressionMode === 'convert'} id="limit" type="number" min="0.1" step="0.1" value={limitMB} onChange={e => setLimitMB(+e.target.value)} /><span>MB</span></div></div>
 
         <div className="dimension-grid"><div className="field"><label htmlFor="edge-limit" title="按图片最长边判断">尺寸限制</label><div className="input-unit"><input id="edge-limit" aria-label="尺寸限制（最长边）" type="number" min="1" step="1" value={edgeLimit} disabled={busy || compressionMode === 'convert'} onChange={event => setEdgeLimit(+event.target.value)} /><span>px</span></div></div></div></div><p className="hint"><Sparkles size={13} />{compressionMode === 'convert' ? '统一转为 JPG，保持像素尺寸；透明区域填充白色。' : '超出限制时自动处理；尺寸按最长边计算，保持宽高比。'}</p>
+        {tasks.length > 0 && <p className="hint">更改设置后需重新处理。</p>}
       </section>
       <aside className="summary-card card">
         <div className="section-heading"><div className="section-title"><Zap size={18} /><div><h2>本次任务</h2><p>导入图片后实时统计</p></div></div></div>
@@ -237,9 +238,11 @@ function CompressionTool() {
       </aside>
 
       </div>
-      <section className="tasks card">
-        <div className="tasks-head"><div className="section-title"><ImagePlus size={18} /><div><h2>图片队列 <span className="count">{tasks.length}</span></h2><p>原始大小 {formatBytes(totalSize)} · 更改设置后需重新处理</p></div></div><div className="queue-actions"><button disabled={busy} onClick={() => inputRef.current?.click()}>添加图片</button><button disabled={busy} onClick={() => folderInputRef.current?.click()}>添加文件夹</button>{tasks.length > 0 && <button className="text-danger" disabled={busy} onClick={clear}><Trash2 size={15} />清空全部</button>}</div></div>
-        {!tasks.length ? <div className="empty"><span className="empty-icon"><ImagePlus size={25} /></span><p>图片队列还是空的</p><span>把图片拖到上方，准备好后即可开始压缩</span></div> :
+      {tasks.length > 0 && <section className={`tasks card${dragging ? ' queue-dragging' : ''}`}
+        onDragOver={event => { event.preventDefault(); event.dataTransfer.dropEffect = busy ? 'none' : 'copy'; if (!busy) setDragging(true) }}
+        onDragLeave={event => { if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setDragging(false) }}
+        onDrop={event => { event.preventDefault(); setDragging(false); if (!busy) void handleDrop(event.dataTransfer) }}>
+        <div className="tasks-head"><div className="section-title"><ImagePlus size={18} /><div><h2>图片队列 <span className="count">{tasks.length}</span></h2><p aria-live="polite">{busy ? '正在处理图片，请稍候' : dragging ? '松开即可添加图片或文件夹' : '拖入图片或文件夹可继续添加，也可使用右侧按钮。'}</p></div></div><div className="queue-actions"><button disabled={busy} onClick={() => inputRef.current?.click()}>添加图片</button><button disabled={busy} onClick={() => folderInputRef.current?.click()}>添加文件夹</button>{tasks.length > 0 && <button className="text-danger" disabled={busy} onClick={clear}><Trash2 size={15} />清空全部</button>}</div></div>
           <div className="task-list">{tasks.map((task, index) => <article className={`task task-${task.status}`} style={{ '--task-delay': `${Math.min(index, 8) * 45}ms` } as React.CSSProperties} key={task.id}>
             <div className="task-preview"><img src={task.previewUrl} alt="" /><span>{task.format}</span></div><div className="task-main"><div className="task-top"><div><h3 title={task.relativePath || task.name}>{task.name}</h3>{task.relativePath && <div className="folder-path"><FolderOpen size={12} />{task.relativePath.split('/').slice(0, -1).join(' / ')}</div>}<div className="meta"><span>{formatBytes(task.size)}</span><span>{task.width} × {task.height}</span><span>最近比例 {task.closestRatio}</span>{edgeEnabled && compressionMode !== 'convert' && Math.max(task.width, task.height) > edgeLimit && <span>最长边超限</span>}{compressionMode !== 'convert' && task.size > limitMB * MB && <span>文件大小超限</span>}</div></div><span className={`status ${task.status}`}>{labels[task.status]}</span></div>
             {task.status === 'processing' && <div className="progress"><div style={{ width: `${task.progress}%` }} /><span>{task.progress}%</span></div>}
@@ -247,8 +250,8 @@ function CompressionTool() {
             {task.status === 'skipped' && <div className="subtle">{compressionMode === 'convert' ? '已是 JPG，无需转换' : `文件大小${edgeEnabled ? '和最长边均' : ''}未超限，无需处理`}</div>}
             {task.status === 'error' && <div className="error-text"><XCircle size={15} />{task.error}</div>}
             </div><div className="task-actions">{task.status === 'done' && <button title="下载" onClick={() => download(task)}><Download size={18} /></button>}<button title="删除" disabled={busy} onClick={() => remove(task)}><Trash2 size={18} /></button></div>
-          </article>)}</div>}
-      </section>
+          </article>)}</div>
+      </section>}
     </main>
     <footer><div><strong>{tasks.length || '尚未添加'}{tasks.length ? ' 张图片' : ''}</strong><span>{completedCount ? ` · ${completedCount} 张已完成` : ' · 所有处理均在本地完成'}</span></div><div className="footer-actions"><button className="secondary" disabled={!downloadableCount || busy} onClick={() => void downloadAll()}><Archive size={17} />下载全部</button><button className="primary" disabled={!tasks.length || busy} onClick={() => void processAll()}>{busy ? <RotateCcw className="spin" size={18} /> : <Play size={17} fill="currentColor" />}{busy ? '正在处理…' : `开始处理${tasks.length ? ` · ${tasks.length}` : ''}`}</button></div></footer>
   </div>

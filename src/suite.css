@@ -202,6 +202,7 @@
 @media(max-width:680px) { .settings .compact-settings.setting-grid,.inspector-settings-row { grid-template-columns:repeat(2,minmax(0,1fr)); }.settings .compact-settings .mode-field,.inspector-settings-row>.field:first-child { grid-column:1/-1; }.tasks-head { align-items:flex-start; flex-direction:column; }.compact-stats { gap:14px; flex-wrap:wrap; } }
 .workspace-grid { grid-template-columns:minmax(0,1.7fr) minmax(260px,.7fr); }
 .workspace-grid .summary-card { min-height:100%; }
+.tasks.queue-dragging { outline:2px dashed var(--primary); outline-offset:3px; background:#f5f3ff; }
 @media(max-width:900px) { .workspace-grid { grid-template-columns:1fr; }.workspace-grid .summary-card { display:block; } }
 
 /* Restored legacy folder creator page support. */
