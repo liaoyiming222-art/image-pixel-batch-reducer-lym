@@ -1,4 +1,6 @@
 node_modules/
+.pnpm-store/
+/PixelFlow-精简版/
 dist/
 *.tsbuildinfo
 vite.config.js

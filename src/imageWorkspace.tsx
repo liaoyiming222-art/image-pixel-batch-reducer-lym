@@ -2,8 +2,8 @@ import { createContext, useContext, useEffect, useRef, useState } from 'react'
 import type { Dispatch, ReactNode, SetStateAction } from 'react'
 import type { ImageTask } from './types'
 
-export type ProcessMode = 'none' | 'over' | 'all'
-export type CompressionMode = 'convert' | 'over' | 'all'
+export type ProcessMode = 'none' | 'over'
+export type CompressionMode = 'convert' | 'over'
 
 interface ImageWorkspaceValue {
   tasks: ImageTask[]
@@ -18,10 +18,6 @@ interface ImageWorkspaceValue {
   edgeEnabled: boolean
   edgeLimit: number
   setEdgeLimit: Dispatch<SetStateAction<number>>
-  edgeTarget: number
-  setEdgeTarget: Dispatch<SetStateAction<number>>
-  targetMB: number
-  setTargetMB: Dispatch<SetStateAction<number>>
 }
 
 const ImageWorkspaceContext = createContext<ImageWorkspaceValue | null>(null)
@@ -34,14 +30,19 @@ export function ImageWorkspaceProvider({ children }: { children: ReactNode }) {
   const [limitMB, setLimitMB] = useState(10)
   const edgeEnabled = true
   const [edgeLimit, setEdgeLimit] = useState(8000)
-  const [edgeTarget, setEdgeTarget] = useState(6000)
-  const [targetMB, setTargetMB] = useState(5)
   useEffect(() => { tasksRef.current = tasks }, [tasks])
+  useEffect(() => {
+    setTasks(current => current.map(task => {
+      if (task.status === 'pending') return task
+      if (task.resultUrl) URL.revokeObjectURL(task.resultUrl)
+      return { ...task, status: 'pending', progress: 0, result: undefined, resultUrl: undefined, resultWidth: undefined, resultHeight: undefined, error: undefined }
+    }))
+  }, [limitMB, edgeLimit, compressionMode, inspectorMode])
   useEffect(() => () => tasksRef.current.forEach(task => {
     URL.revokeObjectURL(task.previewUrl)
     if (task.resultUrl) URL.revokeObjectURL(task.resultUrl)
   }), [])
-  return <ImageWorkspaceContext.Provider value={{ edgeEnabled, edgeLimit, setEdgeLimit, edgeTarget, setEdgeTarget, tasks, setTasks, tasksRef, compressionMode, setCompressionMode, inspectorMode, setInspectorMode, limitMB, setLimitMB, targetMB, setTargetMB }}>
+  return <ImageWorkspaceContext.Provider value={{ edgeEnabled, edgeLimit, setEdgeLimit, tasks, setTasks, tasksRef, compressionMode, setCompressionMode, inspectorMode, setInspectorMode, limitMB, setLimitMB }}>
     {children}
   </ImageWorkspaceContext.Provider>
 }

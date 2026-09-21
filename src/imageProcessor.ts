@@ -81,7 +81,7 @@ const MAX_ATTEMPTS = 5
 
 export async function resizeToTarget(file: File, options: ProcessOptions) {
   if (!options.conversionOnly && (!Number.isFinite(options.targetBytes) || options.targetBytes <= 0)) throw new Error('目标大小必须大于 0')
-  if (!options.conversionOnly && options.edgeLimit !== undefined && (!Number.isInteger(options.edgeLimit) || !Number.isInteger(options.edgeTarget) || options.edgeTarget! <= 0 || options.edgeTarget! >= options.edgeLimit)) throw new Error('目标最长边必须为正整数，且小于最长边限制')
+  if (!options.conversionOnly && options.edgeLimit !== undefined && (!Number.isInteger(options.edgeLimit) || !Number.isInteger(options.edgeTarget) || options.edgeTarget! <= 0 || options.edgeTarget! > options.edgeLimit)) throw new Error('目标最长边必须为正整数，且不大于最长边限制')
   const targetBytes = options.forceSmaller ? Math.min(options.targetBytes, file.size - 1) : options.targetBytes
   const decoded = await readImage(file)
   const canvas = document.createElement('canvas')

@@ -16,6 +16,19 @@ function mockImage(fullSize: number) {
 }
 
 describe('目标大小压缩', () => {
+  it('只有上限时，超长图片缩到上限且保留比例', async () => {
+    mockImage(1000000)
+    const result = await resizeToTarget(new File(['x'], 'x.png'), { targetBytes: 2000000, limitBytes: 2000000, edgeLimit: 3000, edgeTarget: 3000 })
+    expect([result.width, result.height]).toEqual([3000, 2250])
+    expect(result.blob.size).toBeLessThanOrEqual(2000000)
+  })
+  it('体积与最长边恰好等于上限时只编码一次，不继续缩小', async () => {
+    mockImage(1000000)
+    const result = await resizeToTarget(new File(['x'], 'x.png'), { targetBytes: 1000000, limitBytes: 1000000, edgeLimit: 4000, edgeTarget: 4000 })
+    expect([result.width, result.height]).toEqual([4000, 3000])
+    expect(result.blob.size).toBe(1000000)
+    expect(HTMLCanvasElement.prototype.toBlob).toHaveBeenCalledTimes(1)
+  })
   it('尺寸超限但体积合规时，仅等比缩至目标最长边', async () => {
     mockImage(2000000)
     const result = await resizeToTarget(new File(['x'], 'x.jpg'), { targetBytes: 500000, limitBytes: 3000000, edgeLimit: 3500, edgeTarget: 3000 })
