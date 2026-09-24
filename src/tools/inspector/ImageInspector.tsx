@@ -31,6 +31,7 @@ export function ImageInspector() {
   const notify = (text: string) => { setNotice(text) }
 
   const addFiles = async (files: File[]) => {
+    setNotice('')
     const existing = new Set(tasks.map(item => fileSignature(item.file))); const seen = new Set<string>(); const valid: File[] = []
     let invalid = 0, duplicate = 0
     files.forEach(file => { const signature = fileSignature(file); if (!isSupportedImage(file)) invalid += 1; else if (existing.has(signature) || seen.has(signature)) duplicate += 1; else { seen.add(signature); valid.push(file) } })
@@ -49,7 +50,7 @@ export function ImageInspector() {
     const added = settled.flatMap(result => result.status === 'fulfilled' ? [result.value] : [])
     const failed = settled.flatMap(result => result.status === 'rejected' ? [result.reason] : [])
     setTasks(current => [...current, ...added]); setBusy(false)
-    notify(`已添加 ${added.length} 张图片${invalid || duplicate ? `；忽略 ${invalid + duplicate} 个文件` : ''}${failed.length ? `；${failed.length} 个无法读取：${failed[0] instanceof Error ? failed[0].message : '格式解析失败'}` : ''}`)
+    if (invalid || duplicate || failed.length) notify(`${invalid + duplicate ? `${invalid + duplicate} 个文件已忽略` : ''}${failed.length ? `${invalid || duplicate ? '；' : ''}${failed.length} 个无法读取：${failed[0] instanceof Error ? failed[0].message : '格式解析失败'}` : ''}`)
   }
   const sorted = useMemo(() => [...records].sort((a, b) => {
     const av = a[sortKey], bv = b[sortKey]
