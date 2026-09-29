@@ -5,6 +5,7 @@ import { createPreviewUrl, readImage, resizeToTarget } from './imageProcessor'
 import type { ImageTask, TaskStatus } from './types'
 import { aspectRatio, formatBytes, isAcceptedImage, MB, outputName, ratioName } from './utils'
 import { ImageWorkspaceProvider, useImageWorkspace } from './imageWorkspace'
+import { useTransientNotice } from './useTransientNotice'
 import { findClosestRatio } from './tools/inspector/utils'
 import { ImageInspector } from './tools/inspector/ImageInspector'
 import { FolderCreator } from './tools/folder/FolderCreator'
@@ -53,10 +54,10 @@ async function filesFromDrop(dataTransfer: DataTransfer): Promise<File[]> {
 }
 
 function CompressionTool() {
-  const { tasks, setTasks, tasksRef, compressionMode, setCompressionMode, limitMB, setLimitMB, edgeEnabled, edgeLimit, setEdgeLimit } = useImageWorkspace()
+  const { tasks, setTasks, importRegistry, compressionMode, setCompressionMode, limitMB, setLimitMB, edgeEnabled, edgeLimit, setEdgeLimit } = useImageWorkspace()
   const [dragging, setDragging] = useState(false)
   const [busy, setBusy] = useState(false)
-  const [message, setMessage] = useState('')
+  const [message, setMessage] = useTransientNotice()
   const inputRef = useRef<HTMLInputElement>(null)
   const folderInputRef = useRef<HTMLInputElement>(null)
   const patchTask = (id: string, patch: Partial<ImageTask>) => setTasks(current => current.map(item => item.id === id ? { ...item, ...patch } : item))
@@ -65,21 +66,17 @@ function CompressionTool() {
     setMessage('')
     const files = Array.from(list)
     const invalid = files.filter(file => !isAcceptedImage(file))
-    const existingKeys = new Set(tasksRef.current.map(task => `${task.relativePath || task.name}|${task.size}|${task.file.lastModified}`))
     const supported = files.filter(isAcceptedImage)
-    const unique = supported.filter(file => {
-      const key = `${file.webkitRelativePath || file.name}|${file.size}|${file.lastModified}`
-      if (existingKeys.has(key)) return false
-      existingKeys.add(key)
-      return true
-    })
-    const duplicateCount = supported.length - unique.length
+    let duplicateCount = 0
     const imported: ImageTask[] = []
     const errors: string[] = []
-    for (const file of unique) {
+    for (const file of supported) {
       let decoded: Awaited<ReturnType<typeof readImage>> | undefined
       let previewUrl: string | undefined
+      let claimed = false
       try {
+        claimed = await importRegistry.claim(file)
+        if (!claimed) { duplicateCount += 1; continue }
         decoded = await readImage(file)
         const closest = findClosestRatio(decoded.width, decoded.height)
         previewUrl = await createPreviewUrl(file, decoded)
@@ -93,6 +90,7 @@ function CompressionTool() {
         }
         imported.push(task)
       } catch (error) {
+        if (claimed) importRegistry.release(file)
         if (previewUrl) URL.revokeObjectURL(previewUrl)
         errors.push(`${file.name}：${error instanceof Error ? error.message : '无法读取'}`)
       } finally { decoded?.close() }
@@ -137,7 +135,8 @@ function CompressionTool() {
   }
 
   const processAll = async () => {
-    if (!tasks.length || busy) return
+    const queue = tasks.filter(task => task.status === 'pending' || task.status === 'error')
+    if (!queue.length || busy) return
     if (compressionMode !== 'convert' && (!Number.isFinite(limitMB) || limitMB <= 0)) {
       setMessage('大小限制必须为大于 0 的数值。')
       return
@@ -145,7 +144,6 @@ function CompressionTool() {
     if (compressionMode !== 'convert' && edgeEnabled && (!Number.isInteger(edgeLimit) || edgeLimit <= 0)) { setMessage('尺寸限制必须为正整数'); return }
     setMessage('')
     setBusy(true)
-    const queue = [...tasks]
     let cursor = 0
     const worker = async () => { while (cursor < queue.length) { const task = queue[cursor++]; await processOne(task) } }
     await Promise.all(Array.from({ length: Math.min(2, queue.length) }, worker))
@@ -201,6 +199,7 @@ function CompressionTool() {
   }
   const completedCount = tasks.filter(task => task.status === 'done').length
   const downloadableCount = tasks.filter(task => task.status === 'done' || task.status === 'skipped').length
+  const actionableCount = tasks.filter(task => task.status === 'pending' || task.status === 'error').length
   const totalSize = tasks.reduce((sum, task) => sum + task.size, 0)
 
   return <div className="app">
@@ -217,7 +216,7 @@ function CompressionTool() {
         <div className="upload-actions"><button className="upload-primary" type="button" onClick={event => { event.stopPropagation(); inputRef.current?.click() }}><ImagePlus size={16} />选择图片</button><button type="button" onClick={event => { event.stopPropagation(); folderInputRef.current?.click() }}><FolderOpen size={16} />选择文件夹</button></div>
         <div className="upload-note"><Lock size={12} /> 本地处理 · 无需上传 · 支持批量</div>
       </section>
-      {message && <div className="alert"><XCircle size={17} />{message}</div>}
+      {message && <div className="alert image-toast compress-toast" role="status"><XCircle size={17} />{message}</div>}
       <div className="workspace-grid">
       <section className="settings card">
         <div className="section-heading"><div className="section-title"><Settings2 size={18} /><div><h2>压缩设置</h2><p>设定需要处理的图片和输出目标</p></div></div></div>
@@ -253,7 +252,7 @@ function CompressionTool() {
           </article>)}</div>
       </section>}
     </main>
-    <footer><div><strong>{tasks.length || '尚未添加'}{tasks.length ? ' 张图片' : ''}</strong><span>{completedCount ? ` · ${completedCount} 张已完成` : ' · 所有处理均在本地完成'}</span></div><div className="footer-actions"><button className="secondary" disabled={!downloadableCount || busy} onClick={() => void downloadAll()}><Archive size={17} />下载全部</button><button className="primary" disabled={!tasks.length || busy} onClick={() => void processAll()}>{busy ? <RotateCcw className="spin" size={18} /> : <Play size={17} fill="currentColor" />}{busy ? '正在处理…' : `开始处理${tasks.length ? ` · ${tasks.length}` : ''}`}</button></div></footer>
+    <footer><div><strong>{tasks.length || '尚未添加'}{tasks.length ? ' 张图片' : ''}</strong><span>{completedCount ? ` · ${completedCount} 张已完成` : ' · 所有处理均在本地完成'}</span></div><div className="footer-actions"><button className="secondary" disabled={!downloadableCount || busy} onClick={() => void downloadAll()}><Archive size={17} />下载全部</button><button className="primary" disabled={!actionableCount || busy} onClick={() => void processAll()}>{busy ? <RotateCcw className="spin" size={18} /> : <Play size={17} fill="currentColor" />}{busy ? '正在处理…' : `开始处理${actionableCount ? ` · ${actionableCount}` : ''}`}</button></div></footer>
   </div>
 }
 
@@ -262,7 +261,7 @@ type ToolKey = 'home' | 'compress' | 'inspect' | 'folders'
 const tools = [
   { key: 'compress' as const, title: '快速图片压缩', description: '转换 JPG，控制文件大小与最长边。', icon: ImageDown, color: 'blue' },
   { key: 'inspect' as const, title: '比例检测与分组', description: '读取图片尺寸，按画幅比例整理下载。', icon: BarChart3, color: 'purple' },
-  { key: 'folders' as const, title: '文件夹批量创建', description: '粘贴需求表，批量生成规范文件夹。', icon: FolderPlus, color: 'green' },
+  { key: 'folders' as const, title: '文件夹批量处理', description: '批量创建文件夹，统一处理名称与规则。', icon: FolderPlus, color: 'green' },
 ]
 
 function SuiteHome({ onOpen }: { onOpen: (tool: ToolKey) => void }) {

@@ -85,4 +85,13 @@ describe('目标大小压缩', () => {
   it('拒绝无效目标', async () => {
     await expect(resizeToTarget(new File(['x'], 'x.jpg'), { targetBytes: NaN })).rejects.toThrow('目标大小')
   })
+  it('最多尝试三次缩小像素，仍不达标则提示失败', async () => {
+    vi.stubGlobal('createImageBitmap', vi.fn().mockResolvedValue({ width: 4000, height: 3000, close: vi.fn() }))
+    vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue({ fillRect: vi.fn(), drawImage: vi.fn() } as unknown as CanvasRenderingContext2D)
+    const encode = vi.spyOn(HTMLCanvasElement.prototype, 'toBlob').mockImplementation((_callback, _type) => {
+      _callback(new Blob([new Uint8Array(10000)], { type: 'image/jpeg' }))
+    })
+    await expect(resizeToTarget(new File(['x'], 'x.jpg'), { targetBytes: 100 })).rejects.toThrow('未能达到目标大小')
+    expect(encode).toHaveBeenCalledTimes(4) // initial JPG plus three size reductions
+  })
 })

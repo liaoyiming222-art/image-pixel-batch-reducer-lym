@@ -4,6 +4,7 @@ import { Archive, BarChart3, ClipboardCopy, Download, FolderOpen, ImagePlus, Set
 import type { ImageRecord, SortDirection, SortKey } from './types'
 import { createClipboardText, downloadCsv, fileSignature, formatError, formatFileSize, isSupportedImage, ratioArchiveName, readRecord, STANDARD_RATIOS, uniqueArchiveNames } from './utils'
 import { useImageWorkspace } from '../../imageWorkspace'
+import { useTransientNotice } from '../../useTransientNotice'
 import { resizeToTarget } from '../../imageProcessor'
 import type { ImageTask } from '../../types'
 import { aspectRatio, MB, outputName, ratioName } from '../../utils'
@@ -11,13 +12,13 @@ import { filesFromDrop } from '../../fileEntries'
 import './inspector.css'
 
 export function ImageInspector() {
-  const { tasks, setTasks, tasksRef, inspectorMode, setInspectorMode, limitMB, setLimitMB, edgeEnabled, edgeLimit, setEdgeLimit } = useImageWorkspace()
+  const { tasks, setTasks, tasksRef, importRegistry, inspectorMode, setInspectorMode, limitMB, setLimitMB, edgeEnabled, edgeLimit, setEdgeLimit } = useImageWorkspace()
   const [busy, setBusy] = useState(false)
   const [progressText, setProgressText] = useState('')
   const [activeDownload, setActiveDownload] = useState('')
   const [sortKey, setSortKey] = useState<SortKey>('order')
   const [direction, setDirection] = useState<SortDirection>('asc')
-  const [notice, setNotice] = useState('')
+  const [notice, setNotice] = useTransientNotice()
   const inputRef = useRef<HTMLInputElement>(null)
   const folderInputRef = useRef<HTMLInputElement>(null)
   const orderRef = useRef(tasks.length)
@@ -32,12 +33,14 @@ export function ImageInspector() {
 
   const addFiles = async (files: File[]) => {
     setNotice('')
-    const existing = new Set(tasks.map(item => fileSignature(item.file))); const seen = new Set<string>(); const valid: File[] = []
-    let invalid = 0, duplicate = 0
-    files.forEach(file => { const signature = fileSignature(file); if (!isSupportedImage(file)) invalid += 1; else if (existing.has(signature) || seen.has(signature)) duplicate += 1; else { seen.add(signature); valid.push(file) } })
+    const valid = files.filter(isSupportedImage)
+    const invalid = files.length - valid.length
+    let duplicate = 0
     if (!valid.length) { notify(invalid ? '未添加：仅支持非空的 JPG、PNG、WEBP、TIFF 图片' : '未添加：所选图片均已存在'); return }
     setBusy(true)
     const settled = await Promise.allSettled(valid.map(async file => {
+      if (!await importRegistry.claim(file)) { duplicate += 1; return null }
+      try {
       const record = await readRecord(file, orderRef.current++)
       return {
         id: record.id, file, name: file.name, relativePath: file.webkitRelativePath || undefined,
@@ -46,8 +49,9 @@ export function ImageInspector() {
         closestRatio: record.closestRatio, ratioErrorPercent: record.errorPercent,
         previewUrl: record.previewUrl, status: 'pending', progress: 0,
       } satisfies ImageTask
+      } catch (error) { importRegistry.release(file); throw error }
     }))
-    const added = settled.flatMap(result => result.status === 'fulfilled' ? [result.value] : [])
+    const added = settled.flatMap(result => result.status === 'fulfilled' && result.value ? [result.value] : [])
     const failed = settled.flatMap(result => result.status === 'rejected' ? [result.reason] : [])
     setTasks(current => [...current, ...added]); setBusy(false)
     if (invalid || duplicate || failed.length) notify(`${invalid + duplicate ? `${invalid + duplicate} 个文件已忽略` : ''}${failed.length ? `${invalid || duplicate ? '；' : ''}${failed.length} 个无法读取：${failed[0] instanceof Error ? failed[0].message : '格式解析失败'}` : ''}`)
@@ -152,7 +156,7 @@ export function ImageInspector() {
     finally { setBusy(false); setProgressText(''); setActiveDownload('') }
   }
 
-  return <div className="inspector-page">{notice && <div className="alert" role="status">{notice}</div>}
+  return <div className="inspector-page">{notice && <div className={`alert image-toast inspector-toast ${records.length ? 'with-add-bar' : ''}`} role="status">{notice}</div>}
     <section className="tool-intro"><div className="tool-intro-icon"><BarChart3 /></div><div><h1>比例检测与分组</h1><p>读取图片尺寸，按画幅比例整理下载。</p></div></section>
     {!records.length ? <section className="inspector-upload" role="button" tabIndex={0} onClick={choose} onKeyDown={event => (event.key === 'Enter' || event.key === ' ') && choose()}
       onDragOver={event => event.preventDefault()} onDrop={event => { event.preventDefault(); void handleDrop(event.dataTransfer) }}>

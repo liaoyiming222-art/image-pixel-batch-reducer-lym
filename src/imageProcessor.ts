@@ -77,7 +77,7 @@ export async function createPreviewUrl(file: File, decoded: Decoded): Promise<st
 const OUTPUT_QUALITY = 0.9
 const OUTPUT_TYPE = 'image/jpeg'
 const OUTPUT_BACKGROUND = '#ffffff'
-const MAX_ATTEMPTS = 5
+const MAX_ATTEMPTS = 3
 
 export async function resizeToTarget(file: File, options: ProcessOptions) {
   if (!options.conversionOnly && (!Number.isFinite(options.targetBytes) || options.targetBytes <= 0)) throw new Error('目标大小必须大于 0')
