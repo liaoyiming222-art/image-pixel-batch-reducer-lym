@@ -10,6 +10,7 @@ import { findClosestRatio } from './tools/inspector/utils'
 import { ImageInspector } from './tools/inspector/ImageInspector'
 import { FolderCreator } from './tools/folder/FolderCreator'
 import './suite.css'
+import { newTaskId, track } from './analytics'
 
 const labels: Record<TaskStatus, string> = {
   pending: '待处理', processing: '处理中', done: '处理完成', skipped: '无需处理', error: '处理失败',
@@ -60,6 +61,7 @@ function CompressionTool() {
   const [message, setMessage] = useTransientNotice()
   const inputRef = useRef<HTMLInputElement>(null)
   const folderInputRef = useRef<HTMLInputElement>(null)
+  const processTaskRef = useRef('')
   const patchTask = (id: string, patch: Partial<ImageTask>) => setTasks(current => current.map(item => item.id === id ? { ...item, ...patch } : item))
 
   const addFiles = async (list: FileList | File[]) => {
@@ -96,6 +98,7 @@ function CompressionTool() {
       } finally { decoded?.close() }
     }
     if (imported.length) setTasks(current => [...current, ...imported])
+    track('image_import_finished', 'compress', { added: imported.length, duplicate: duplicateCount, invalid: invalid.length, failed: errors.length }, newTaskId())
     const notices = []
     if (invalid.length) notices.push(`已忽略 ${invalid.length} 个不支持的文件`)
     if (duplicateCount) notices.push(`已跳过 ${duplicateCount} 个重复文件`)
@@ -116,7 +119,7 @@ function CompressionTool() {
     patchTask(task.id, { result: undefined, resultUrl: undefined, resultWidth: undefined, resultHeight: undefined })
     if (isJpg && (compressionMode === 'convert' || (compressionMode === 'over' && task.size <= limitMB * MB && (!edgeEnabled || Math.max(task.width, task.height) <= edgeLimit)))) {
       patchTask(task.id, { status: 'skipped', progress: 100, error: undefined })
-      return
+      return { success: 0, skipped: 1, failed: 0, qualified: 0 }
     }
     patchTask(task.id, { status: 'processing', progress: 4, error: undefined })
     try {
@@ -129,8 +132,10 @@ function CompressionTool() {
         status: 'done', progress: 100, result: result.blob,
         resultUrl: URL.createObjectURL(result.blob), resultWidth: result.width, resultHeight: result.height,
       })
+      return { success: 1, skipped: 0, failed: 0, qualified: compressionMode === 'convert' || (result.blob.size <= limitMB * MB && (!edgeEnabled || Math.max(result.width, result.height) <= edgeLimit)) ? 1 : 0 }
     } catch (error) {
       patchTask(task.id, { status: 'error', progress: 0, error: error instanceof Error ? error.message : '未知错误' })
+      return { success: 0, skipped: 0, failed: 1, qualified: 0 }
     }
   }
 
@@ -144,9 +149,14 @@ function CompressionTool() {
     if (compressionMode !== 'convert' && edgeEnabled && (!Number.isInteger(edgeLimit) || edgeLimit <= 0)) { setMessage('尺寸限制必须为正整数'); return }
     setMessage('')
     setBusy(true)
+    const taskId = newTaskId(); processTaskRef.current = taskId
+    const started = performance.now()
+    const counts = { success: 0, skipped: 0, failed: 0, qualified: 0 }
+    track('image_process_started', 'compress', { count: queue.length, mode: compressionMode }, taskId)
     let cursor = 0
-    const worker = async () => { while (cursor < queue.length) { const task = queue[cursor++]; await processOne(task) } }
+    const worker = async () => { while (cursor < queue.length) { const task = queue[cursor++]; const result = await processOne(task); counts.success += result.success; counts.skipped += result.skipped; counts.failed += result.failed; counts.qualified += result.qualified } }
     await Promise.all(Array.from({ length: Math.min(2, queue.length) }, worker))
+    track('image_process_finished', 'compress', { ...counts, pending: 0, count: queue.length, duration: Math.round(performance.now() - started), mode: compressionMode }, taskId)
     setBusy(false)
   }
 
@@ -156,6 +166,7 @@ function CompressionTool() {
     link.href = task.resultUrl
     link.download = outputName(task.name, task.result.type, task.closestRatio)
     link.click()
+    track('output_action', 'compress', { kind: 'single', count: 1, outputs: 1 }, processTaskRef.current)
   }
 
   const downloadAll = async () => {
@@ -173,6 +184,7 @@ function CompressionTool() {
       const url = URL.createObjectURL(item.file)
       const link = document.createElement('a')
       link.href = url; link.download = item.name; link.click()
+      track('output_action', 'compress', { kind: 'single', count: 1, outputs: 1 }, processTaskRef.current)
       setTimeout(() => URL.revokeObjectURL(url), 1000)
       return
     }
@@ -185,6 +197,7 @@ function CompressionTool() {
     const url = URL.createObjectURL(blob)
     const link = document.createElement('a')
     link.href = url; link.download = `已处理图片_${new Date().toISOString().slice(0, 10)}.zip`; link.click()
+    track('output_action', 'compress', { kind: 'zip', count: downloadable.length, outputs: 1 }, processTaskRef.current)
     setTimeout(() => URL.revokeObjectURL(url), 1000)
   }
 
@@ -275,14 +288,15 @@ function SuiteHome({ onOpen }: { onOpen: (tool: ToolKey) => void }) {
         {tool.key === 'folders' && <div className="folder-tree"><div><FolderOpen size={22}/><span>项目素材</span></div><div className="tree-child"><FolderPlus size={18}/><span>AI</span></div><div className="tree-child"><FolderPlus size={18}/><span>原图</span></div></div>}
       </div>
     </button>)}</section>
-    <div className="home-privacy"><Lock size={14}/>文件仅在本地处理，不上传服务器。</div>
+    <div className="home-privacy"><Lock size={14}/>文件内容仅在本地处理；收集匿名数量与状态统计以改善工具。</div>
   </main>
 }
 
 export default function App() {
   const [activeTool, setActiveTool] = useState<ToolKey>('home')
-  return <ImageWorkspaceProvider><div className="suite-shell"><nav className="suite-nav"><button className="suite-brand" onClick={() => setActiveTool('home')}><span><ImagePlus size={19} /></span><b>PixelFlow</b><small>本地效率工具</small></button><div className="suite-nav-links"><button className={activeTool === 'home' ? 'active' : ''} onClick={() => setActiveTool('home')}><Home size={15} />首页</button>{tools.map(tool => <button key={tool.key} className={activeTool === tool.key ? 'active' : ''} onClick={() => setActiveTool(tool.key)}><tool.icon size={15} />{tool.title}</button>)}</div><div className="nav-local"><span/>本地运行</div></nav>
-    {activeTool === 'home' && <SuiteHome onOpen={setActiveTool} />}
+  const openTool = (tool: ToolKey) => { if (tool !== activeTool && tool !== 'home') track('tool_open', tool); setActiveTool(tool) }
+  return <ImageWorkspaceProvider><div className="suite-shell"><nav className="suite-nav"><button className="suite-brand" onClick={() => openTool('home')}><span><ImagePlus size={19} /></span><b>PixelFlow</b><small>本地效率工具</small></button><div className="suite-nav-links"><button className={activeTool === 'home' ? 'active' : ''} onClick={() => openTool('home')}><Home size={15} />首页</button>{tools.map(tool => <button key={tool.key} className={activeTool === tool.key ? 'active' : ''} onClick={() => openTool(tool.key)}><tool.icon size={15} />{tool.title}</button>)}</div><div className="nav-local"><span/>本地运行</div></nav>
+    {activeTool === 'home' && <SuiteHome onOpen={openTool} />}
     {activeTool === 'compress' && <CompressionTool />}
     {activeTool === 'inspect' && <ImageInspector />}
     {activeTool === 'folders' && <FolderCreator />}

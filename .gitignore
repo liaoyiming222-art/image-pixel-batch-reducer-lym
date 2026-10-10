@@ -35,3 +35,11 @@ Desktop.ini
 
 # Vercel 本地配置
 .vercel/
+.wrangler/
+.dev.vars
+.dev.vars.*
+wrangler.jsonc
+workers/wrangler.jsonc
+analytics-cloudflare.local.json
+analytics-admin.local.txt
+archive-secrets.local.json

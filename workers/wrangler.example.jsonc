@@ -1,0 +1,8 @@
+{
+  "name": "pixelflow-analytics-archive",
+  "main": "archive.ts",
+  "compatibility_date": "2026-10-10",
+  "triggers": { "crons": ["15 19 * * *"] },
+  "d1_databases": [{ "binding": "DB", "database_name": "pixelflow-analytics", "database_id": "REPLACE_WITH_DATABASE_ID" }],
+  "vars": { "ANALYTICS_HOST": "pixelflow-image-tools.pages.dev", "CF_ACCOUNT_ID": "4a8a917a1d515000fae113807a66c877" }
+}

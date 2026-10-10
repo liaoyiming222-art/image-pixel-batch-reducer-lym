@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import JSZip from 'jszip'
 import { Archive, BarChart3, ClipboardCopy, Download, FolderOpen, ImagePlus, Settings2, Trash2 } from 'lucide-react'
 import type { ImageRecord, SortDirection, SortKey } from './types'
@@ -10,6 +10,7 @@ import type { ImageTask } from '../../types'
 import { aspectRatio, MB, outputName, ratioName } from '../../utils'
 import { filesFromDrop } from '../../fileEntries'
 import './inspector.css'
+import { newTaskId, track, trackInspection } from '../../analytics'
 
 export function ImageInspector() {
   const { tasks, setTasks, tasksRef, importRegistry, inspectorMode, setInspectorMode, limitMB, setLimitMB, edgeEnabled, edgeLimit, setEdgeLimit } = useImageWorkspace()
@@ -22,6 +23,8 @@ export function ImageInspector() {
   const inputRef = useRef<HTMLInputElement>(null)
   const folderInputRef = useRef<HTMLInputElement>(null)
   const orderRef = useRef(tasks.length)
+  const batchRef = useRef({ id: '', started: 0, planned: 0, success: 0, skipped: 0, failed: 0, qualified: 0 })
+  useEffect(() => { trackInspection(tasks.map(task => task.id)) }, [tasks])
   const records = useMemo<ImageRecord[]>(() => tasks.map((task, index) => ({
     id: task.id, file: task.file, signature: fileSignature(task.file), order: index, name: task.name,
     width: task.width, height: task.height, size: task.size,
@@ -53,6 +56,7 @@ export function ImageInspector() {
     }))
     const added = settled.flatMap(result => result.status === 'fulfilled' && result.value ? [result.value] : [])
     const failed = settled.flatMap(result => result.status === 'rejected' ? [result.reason] : [])
+    track('image_import_finished', 'inspect', { added: added.length, duplicate, invalid, failed: failed.length }, newTaskId())
     setTasks(current => [...current, ...added]); setBusy(false)
     if (invalid || duplicate || failed.length) notify(`${invalid + duplicate ? `${invalid + duplicate} 个文件已忽略` : ''}${failed.length ? `${invalid || duplicate ? '；' : ''}${failed.length} 个无法读取：${failed[0] instanceof Error ? failed[0].message : '格式解析失败'}` : ''}`)
   }
@@ -81,13 +85,14 @@ export function ImageInspector() {
     try { await addFiles(await filesFromDrop(dataTransfer)) }
     catch { notify('无法读取拖入的文件夹，请改用“选择文件夹”') }
   }
-  const copy = async () => { try { await navigator.clipboard.writeText(createClipboardText(sorted)); notify('已复制全部结果') } catch { notify('复制失败，请检查剪贴板权限') } }
+  const copy = async () => { try { await navigator.clipboard.writeText(createClipboardText(sorted)); track('output_action', 'inspect', { kind: 'copy', count: sorted.length, outputs: 1 }); notify('已复制全部结果') } catch { notify('复制失败，请检查剪贴板权限') } }
   const patchTask = (id: string, patch: Partial<ImageTask>) => setTasks(current => current.map(task => task.id === id ? { ...task, ...patch } : task))
   const processTask = async (task: ImageTask) => {
     if (task.resultUrl) URL.revokeObjectURL(task.resultUrl)
     patchTask(task.id, { result: undefined, resultUrl: undefined, resultWidth: undefined, resultHeight: undefined })
     if (inspectorMode === 'none' || (inspectorMode === 'over' && (task.file.type === 'image/jpeg' || /\.jpe?g$/i.test(task.name)) && task.size <= limitMB * MB && (!edgeEnabled || Math.max(task.width, task.height) <= edgeLimit))) {
       patchTask(task.id, { status: 'skipped', progress: 100, error: undefined })
+      batchRef.current.skipped++
       return task.file as File | Blob
     }
     patchTask(task.id, { status: 'processing', progress: 4, error: undefined })
@@ -95,9 +100,12 @@ export function ImageInspector() {
       const result = await resizeToTarget(task.file, { targetBytes: limitMB * MB, limitBytes: inspectorMode === 'over' ? limitMB * MB : undefined, edgeLimit: edgeEnabled ? edgeLimit : undefined, edgeTarget: edgeLimit, onProgress: progress => patchTask(task.id, { progress }) })
       if (task.resultUrl) URL.revokeObjectURL(task.resultUrl)
       patchTask(task.id, { status: 'done', progress: 100, result: result.blob, resultUrl: URL.createObjectURL(result.blob), resultWidth: result.width, resultHeight: result.height })
+      batchRef.current.success++
+      if (result.blob.size <= limitMB * MB && (!edgeEnabled || Math.max(result.width, result.height) <= edgeLimit)) batchRef.current.qualified++
       return result.blob
     } catch (error) {
       patchTask(task.id, { status: 'error', progress: 0, error: error instanceof Error ? error.message : '处理失败' })
+      batchRef.current.failed++
       throw new Error(`${task.name}：${error instanceof Error ? error.message : '处理失败'}`)
     }
   }
@@ -130,18 +138,20 @@ export function ImageInspector() {
   const downloadGroup = async (ratio: string, items: ImageRecord[]) => {
     if (busy || !validSettings()) return
     setBusy(true)
+    beginBatch(items.length)
     setActiveDownload(ratio)
     let completed = 0
     setProgressText(`正在处理 0/${items.length}`)
-    try { triggerArchive(await createGroupArchive(ratio, items, () => { completed += 1; setProgressText(`正在处理 ${completed}/${items.length}`) })); notify(`已下载 ${ratio} 分组`) }
+    try { triggerArchive(await createGroupArchive(ratio, items, () => { completed += 1; setProgressText(`正在处理 ${completed}/${items.length}`) })); track('output_action', 'inspect', { kind: 'group', count: completed, outputs: 1 }, batchRef.current.id); notify(`已下载 ${ratio} 分组`) }
     catch (error) { notify(error instanceof Error ? error.message : `${ratio} 分组打包失败`) }
-    finally { setBusy(false); setProgressText(''); setActiveDownload('') }
+    finally { finishBatch(); setBusy(false); setProgressText(''); setActiveDownload('') }
   }
   const downloadAllGroups = async () => {
     if (busy || !ratioGroups.length || !validSettings()) return
     setBusy(true)
     setActiveDownload('all')
     const total = ratioGroups.reduce((sum, group) => sum + group.items.length, 0)
+    beginBatch(total)
     let completed = 0
     try {
       const archives = []
@@ -151,9 +161,18 @@ export function ImageInspector() {
         archives.push(await createGroupArchive(group.ratio, group.items, () => { completed += 1; setProgressText(`正在处理 ${completed}/${total} · 分组 ${index + 1}/${ratioGroups.length}`) }))
       }
       archives.forEach(triggerArchive)
+      track('output_action', 'inspect', { kind: 'groups', count: completed, outputs: archives.length }, batchRef.current.id)
       notify(`已下载 ${archives.length} 个分组压缩包`)
     } catch (error) { notify(error instanceof Error ? error.message : '分组压缩包生成失败，请重试') }
-    finally { setBusy(false); setProgressText(''); setActiveDownload('') }
+    finally { finishBatch(); setBusy(false); setProgressText(''); setActiveDownload('') }
+  }
+  const beginBatch = (count: number) => {
+    batchRef.current = { id: newTaskId(), started: performance.now(), planned: count, success: 0, skipped: 0, failed: 0, qualified: 0 }
+    track('image_process_started', 'inspect', { count, mode: inspectorMode }, batchRef.current.id)
+  }
+  const finishBatch = () => {
+    const b = batchRef.current
+    track('image_process_finished', 'inspect', { count: b.planned, success: b.success, skipped: b.skipped, failed: b.failed, qualified: b.qualified, pending: b.planned - b.success - b.skipped - b.failed, duration: Math.round(performance.now() - b.started), mode: inspectorMode }, b.id)
   }
 
   return <div className="inspector-page">{notice && <div className={`alert image-toast inspector-toast ${records.length ? 'with-add-bar' : ''}`} role="status">{notice}</div>}
@@ -172,7 +191,7 @@ export function ImageInspector() {
         </article>)}</div>
       </section>
       <div className="inspector-add-bar" onDragOver={event => event.preventDefault()} onDrop={event => { event.preventDefault(); if (!busy) void handleDrop(event.dataTransfer) }}><div className="add-bar-heading"><ImagePlus size={24}/><div><strong>继续添加图片或文件夹</strong><small>{busy ? '正在处理…' : '支持拖放添加'}</small></div></div><div className="footer-actions"><button type="button" className="primary" disabled={busy} onClick={choose}><ImagePlus size={16}/>选择图片</button><button type="button" className="secondary" disabled={busy} onClick={chooseFolder}><FolderOpen size={16}/>选择文件夹</button></div></div>
-      <div className="detection-details"><section className="inspector-actions"><strong>检测结果 <i>{records.length}</i></strong><div><button type="button" className="button" onClick={() => void copy()}><ClipboardCopy size={15} />复制结果</button><button type="button" className="button" onClick={() => downloadCsv(sorted)}><Download size={15} />导出 CSV</button><button type="button" className="button danger" onClick={() => { if (!window.confirm('将同时清空快速压缩和比例分组中的图片及处理结果，确认继续吗？')) return; tasks.forEach(task => { URL.revokeObjectURL(task.previewUrl); if (task.resultUrl) URL.revokeObjectURL(task.resultUrl) }); setTasks([]); orderRef.current = 0 }}><Trash2 size={15} />清空</button></div></section>
+      <div className="detection-details"><section className="inspector-actions"><strong>检测结果 <i>{records.length}</i></strong><div><button type="button" className="button" onClick={() => void copy()}><ClipboardCopy size={15} />复制结果</button><button type="button" className="button" onClick={() => { downloadCsv(sorted); track('output_action', 'inspect', { kind: 'csv', count: sorted.length, outputs: 1 }) }}><Download size={15} />导出 CSV</button><button type="button" className="button danger" onClick={() => { if (!window.confirm('将同时清空快速压缩和比例分组中的图片及处理结果，确认继续吗？')) return; tasks.forEach(task => { URL.revokeObjectURL(task.previewUrl); if (task.resultUrl) URL.revokeObjectURL(task.resultUrl) }); setTasks([]); orderRef.current = 0 }}><Trash2 size={15} />清空</button></div></section>
       <div className="inspector-table"><table><thead><tr><th onClick={() => sort('order')}>序号</th><th onClick={() => sort('name')}>文件名</th><th>图片尺寸</th><th>方向</th><th>实际比例</th><th onClick={() => sort('closestRatio')}>最接近比例</th><th onClick={() => sort('errorPercent')}>误差</th><th>文件大小</th><th>操作</th></tr></thead>
         <tbody>{sorted.map((item, index) => <tr key={item.id}><td>{index + 1}</td><td title={item.name}>{item.name}</td><td><b>{item.width}</b> × <b>{item.height}</b> px</td><td><span className={`orient ${item.orientation}`}>{item.orientation}</span></td><td>{item.actualRatioText}</td><td><mark>{item.closestRatio}</mark></td><td>{formatError(item.errorPercent)}</td><td>{formatFileSize(item.size)}</td><td><button className="row-delete" onClick={() => setTasks(current => current.filter(task => task.id !== item.id))}>删除</button></td></tr>)}</tbody></table></div></div>
     </>}
