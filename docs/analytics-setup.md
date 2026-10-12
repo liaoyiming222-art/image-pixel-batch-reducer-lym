@@ -21,6 +21,8 @@ Git 自动部署：生产环境应保持 D1 的 DB 绑定、ADMIN_PASSWORD、AUT
 
 ## 验证及本地预览
 
+日常查看统计可双击根目录的 `启动统计预览.cmd`，或运行 `npm run analytics:preview`，然后打开 `http://127.0.0.1:8788/admin`。该预览仅绑定本机地址，使用原后台密码登录，查询同一份线上数据，不使用本地测试数据库，也不采集本地产品事件。电脑重启后需要再次启动。服务需要网络来读取线上统计；本地静态页面可以直接加载。
+
 运行 `npm run test:analytics`、`npm run typecheck:analytics` 和 `npm run build`。本地联调时复制 `wrangler.example.jsonc` 到 `wrangler.jsonc`，用本地测试 UUID 配置 DB，设置 `.dev.vars` 中的 ADMIN_PASSWORD、AUTH_SECRET 与 ANALYTICS_HOST=localhost。使用 Wrangler 初始化本地数据库，启动 `wrangler pages dev dist`。前端在本地默认不采集；可用验证脚本直接提交测试事件。本地数据库不会写入线上。
 
 测试人员可在正式站点浏览器控制台设置 `localStorage.setItem('pixelflow.analytics.disabled','1')` 排除自己的后续采集；删除该键可恢复。关闭采集时，待发送的事件不会继续提交。
