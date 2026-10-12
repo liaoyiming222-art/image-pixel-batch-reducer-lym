@@ -34,9 +34,7 @@ try {
   const config={name:project,pages_build_output_dir:'dist',compatibility_date:'2026-10-10',d1_databases:[{binding:'DB',database_name:'pixelflow-analytics',database_id:database.uuid,migrations_dir:'migrations'}],vars:{ANALYTICS_HOST:`${project}.pages.dev`,CF_ACCOUNT_ID:account,...(siteTag?{CF_SITE_TAG:siteTag}:{})}}
   fs.writeFileSync('wrangler.jsonc',JSON.stringify(config,null,2)+'\n')
   fs.writeFileSync('workers/wrangler.jsonc',JSON.stringify({name:'pixelflow-analytics-archive',main:'archive.ts',compatibility_date:'2026-10-10',triggers:{crons:['15 19 * * *']},d1_databases:[{binding:'DB',database_name:'pixelflow-analytics',database_id:database.uuid}],vars:{ANALYTICS_HOST:`${project}.pages.dev`,CF_ACCOUNT_ID:account,...(siteTag?{CF_SITE_TAG:siteTag}:{})}},null,2)+'\n')
-  const schema=fs.readFileSync('migrations/0001_analytics.sql','utf8')
-  const result=await api(`/accounts/${account}/d1/database/${database.uuid}/query`,'POST',{sql:schema})
-  if(result.some(row=>!row.success))throw new Error('数据库表初始化未完成。')
+  wrangler(['d1','migrations','apply','DB','--remote'])
   let secrets
   if(fs.existsSync('analytics-cloudflare.local.json'))secrets=JSON.parse(fs.readFileSync('analytics-cloudflare.local.json','utf8'))
   else{secrets={ADMIN_PASSWORD:crypto.randomBytes(24).toString('base64url'),AUTH_SECRET:crypto.randomBytes(48).toString('base64url')};fs.writeFileSync('analytics-cloudflare.local.json',JSON.stringify(secrets,null,2));fs.writeFileSync('analytics-admin.local.txt',`PixelFlow 统计后台\n地址：https://${project}.pages.dev/admin\n密码：${secrets.ADMIN_PASSWORD}\n请妥善保管，不要提交到 Git。\n`)}

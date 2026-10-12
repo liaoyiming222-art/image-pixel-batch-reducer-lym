@@ -43,3 +43,5 @@ workers/wrangler.jsonc
 analytics-cloudflare.local.json
 analytics-admin.local.txt
 archive-secrets.local.json
+
+wrangler.everybody.jsonc

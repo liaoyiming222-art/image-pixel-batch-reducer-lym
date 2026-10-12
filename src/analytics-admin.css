@@ -4,3 +4,5 @@
 .analytics-sidebar nav button{white-space:nowrap}@media(max-width:620px){.analytics-sidebar nav{gap:3px}.analytics-sidebar nav button{flex:1;padding:8px 5px;font-size:11px;gap:4px}.analytics-sidebar nav button svg{flex-shrink:0;width:13px}}
 
 .analytics-sidebar .mobile-logout{display:none}@media(max-width:850px){.analytics-sidebar .mobile-logout{display:flex;position:absolute;top:24px;right:22px;padding:8px;color:#8c9bb3}}
+
+.sidebar-project select{border:0!important;background:transparent!important;font-size:11px!important;width:141px;color:#718099!important;padding:0!important}.sidebar-project small{overflow:hidden;text-overflow:ellipsis;max-width:145px}.sidebar-project>div{min-width:0}@media(max-width:850px){.sidebar-project{display:flex;margin:14px 0 0;padding:8px 11px;width:230px}.sidebar-project select{width:180px}.sidebar-project small{max-width:200px}}

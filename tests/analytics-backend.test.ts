@@ -18,12 +18,51 @@ const event=(name='page_view',tool='app',props={},overrides={})=>({id:user(),use
 const request=(path:string,body:unknown,cookie='')=>new Request(host+path,{method:'POST',headers:{Origin:host,'Content-Type':'application/json',Cookie:cookie},body:JSON.stringify(body)})
 beforeEach(()=>{
   vi.useFakeTimers();vi.setSystemTime(now)
-  sqlite=new DatabaseSync(':memory:');sqlite.exec(readFileSync('migrations/0001_analytics.sql','utf8'))
+  sqlite=new DatabaseSync(':memory:');sqlite.exec(readFileSync('migrations/0001_analytics.sql','utf8'));sqlite.exec(readFileSync('migrations/0002_multisite.sql','utf8'))
   db={prepare(sql:string){let args:unknown[]=[];const statement={bind(...next:unknown[]){args=next;return statement},async run(){const result=sqlite.prepare(sql).run(...args);return {success:true,meta:{changes:Number(result.changes)}}},async all(){return {results:sqlite.prepare(sql).all(...args)}},async first(){return sqlite.prepare(sql).get(...args)||null}};return statement},async batch(items){sqlite.exec('BEGIN');try{const values=[];for(const item of items)values.push(await item.run());sqlite.exec('COMMIT');return values}catch(e){sqlite.exec('ROLLBACK');throw e}}} as Database
   env={DB:db,ADMIN_PASSWORD:'a-test-password-only',AUTH_SECRET:'test-signing-key-longer-than-32-characters'}
 })
 afterEach(()=>{sqlite.close();vi.useRealTimers();vi.restoreAllMocks()})
 describe('数据接收与累计',()=>{
+  it('同一事件编号在两个站点分别去重，用户和累计不混算',async()=>{
+    const e=event(),secondary={...e,site:'pixelfloweverybody'}
+    await ingest({request:request('/api/events',{events:[e]}),env})
+    const secondaryRequest=()=>new Request('https://pixelfloweverybody.pages.dev/api/events',{method:'POST',headers:{Origin:'https://pixelfloweverybody.pages.dev','Content-Type':'application/json'},body:JSON.stringify({events:[secondary]})})
+    expect((await ingest({request:secondaryRequest(),env})).status).toBe(200)
+    await ingest({request:secondaryRequest(),env})
+    const a=await readStats(db,'2026-10-01','2026-10-31'),b=await readStats(db,'2026-10-01','2026-10-31','pixelfloweverybody')
+    expect(a.totals).toMatchObject({pageviews:1,users:1,sessions:1})
+    expect(b.totals).toMatchObject({pageviews:1,users:1,sessions:1})
+    expect(b.dashboard.siteLaunch).toBe('2026-10-10')
+    expect(b.dashboard.lifetime.traffic).toMatchObject({pageviews:1,visits:1})
+    expect(sqlite.prepare('SELECT COUNT(*) AS n FROM events').get().n).toBe(2)
+    expect(sqlite.prepare('SELECT COUNT(*) AS n FROM users').get().n).toBe(2)
+  })
+  it('拒绝站点伪装和第二站点缺少标识，旧主站点请求仍兼容',async()=>{
+    const origin='https://pixelfloweverybody.pages.dev'
+    const req=(e:unknown)=>new Request(origin+'/api/events',{method:'POST',headers:{Origin:origin,'Content-Type':'application/json'},body:JSON.stringify({events:[e]})})
+    expect((await ingest({request:req(event()),env})).status).toBe(403)
+    expect((await ingest({request:request('/api/events',{events:[{...event(),site:'pixelfloweverybody'}]}),env})).status).toBe(403)
+    expect((await ingest({request:request('/api/events',{events:[event()]}),env})).status).toBe(200)
+  })
+  it('每个站点的历史、月度、首条事件和每日汇总独立',async()=>{
+    const a=event('inspection_finished','inspect',{count:3},{task:user()})
+    await ingest({request:request('/api/events',{events:[a]}),env})
+    const b={...event('inspection_finished','inspect',{count:7},{task:user()}),site:'pixelfloweverybody'}
+    const origin='https://pixelfloweverybody.pages.dev'
+    await ingest({request:new Request(origin+'/api/events',{method:'POST',headers:{Origin:origin,'Content-Type':'application/json'},body:JSON.stringify({events:[b]})}),env})
+    await summarizeDay(db,'2026-10-10');await summarizeDay(db,'2026-10-10','pixelfloweverybody')
+    expect(sqlite.prepare("SELECT value FROM site_daily_metrics WHERE site_id='pixelflow-image-tools' AND metric='inspected'").get().value).toBe(3)
+    expect(sqlite.prepare("SELECT value FROM site_daily_metrics WHERE site_id='pixelfloweverybody' AND metric='inspected'").get().value).toBe(7)
+    expect((await readStats(db,'2026-10-01','2026-10-31')).dashboard.monthly[0].business?.inspected).toBe(3)
+    expect((await readStats(db,'2026-10-01','2026-10-31','pixelfloweverybody')).dashboard.monthly[0].business?.inspected).toBe(7)
+  })
+  it('空站点没有继承其他站点历史，未知站点不可查询',async()=>{
+    await ingest({request:request('/api/events',{events:[event()]}),env})
+    const b=await readStats(db,'2026-10-01','2026-10-31','pixelfloweverybody')
+    expect(b.firstAt).toBeNull();expect(b.dashboard.lifetime.users).toBe(0);expect(b.dashboard.lifetime.traffic.pageviews).toBeNull()
+    await expect(readStats(db,'2026-10-01','2026-10-31','unknown')).rejects.toThrow('Unknown site')
+  })
   it('同一个用户跨月出现，累计去重一次，月度各算一次',async()=>{
     const uid=user()
     for(const at of [Date.parse('2026-09-30T15:59:00Z'),Date.parse('2026-09-30T16:01:00Z')]){
@@ -62,13 +101,13 @@ describe('数据接收与累计',()=>{
     const s=await readStats(db,'2026-10-10','2026-10-10')
     expect(s.totals).toMatchObject({process_tasks:1,processed:1,skipped:1,process_failed:1,qualified:1,inspected:3,exports:1,folders:1,subfolders:3,completed_existing:1,users:1,effective_users:1})
     await summarizeDay(db,'2026-10-10');await summarizeDay(db,'2026-10-10')
-    expect(sqlite.prepare("SELECT SUM(value) AS n FROM daily_metrics WHERE metric='processed'").get().n).toBe(1)
+    expect(sqlite.prepare("SELECT SUM(value) AS n FROM site_daily_metrics WHERE metric='processed'").get().n).toBe(1)
   })
   it('中断的分组任务不伪装为完整完成',async()=>{
     const e=event('image_process_finished','inspect',{count:5,success:1,skipped:1,failed:1,pending:2,qualified:1,duration:100},{task:user()})
     await ingest({request:request('/api/events',{events:[e]}),env});await summarizeDay(db,'2026-10-10')
     const s=await readStats(db,'2026-10-10','2026-10-10');expect(s.totals).toMatchObject({completed_tasks:0,interrupted_tasks:1,pending:2})
-    expect(sqlite.prepare("SELECT value FROM daily_metrics WHERE metric='interrupted_tasks'").get().value).toBe(1)
+    expect(sqlite.prepare("SELECT value FROM site_daily_metrics WHERE metric='interrupted_tasks'").get().value).toBe(1)
   })
 })
 describe('后台权限',()=>{
@@ -92,15 +131,15 @@ describe('Cloudflare 归档',()=>{
     env.CLOUDFLARE_API_TOKEN='test-token';env.CF_ACCOUNT_ID='4a8a917a1d515000fae113807a66c877'
     const fetcher=vi.fn(async(_url:unknown,init:RequestInit)=>{expect(JSON.parse(String(init.body)).query).toContain('2026-10-08T16:00:00.000Z');return new Response(JSON.stringify({data:{viewer:{accounts:[{rumPageloadEventsAdaptiveGroups:[{count:12,sum:{visits:5}}]}]}}}))})
     await archiveDay(env,'2026-10-09',fetcher as typeof fetch);await archiveDay(env,'2026-10-09',fetcher as typeof fetch)
-    expect(sqlite.prepare('SELECT COUNT(*) AS n FROM cloudflare_daily').get().n).toBe(2)
-    expect(sqlite.prepare("SELECT value FROM cloudflare_daily WHERE metric='pageviews'").get().value).toBe(12)
+    expect(sqlite.prepare('SELECT COUNT(*) AS n FROM site_cloudflare_daily').get().n).toBe(2)
+    expect(sqlite.prepare("SELECT value FROM site_cloudflare_daily WHERE metric='pageviews'").get().value).toBe(12)
   })
   it('查询错误不能覆盖已有归档为零，失败会记录',async()=>{
     env.CLOUDFLARE_API_TOKEN='test-token';env.CF_ACCOUNT_ID='4a8a917a1d515000fae113807a66c877'
     vi.stubGlobal('fetch',vi.fn(async()=>new Response(JSON.stringify({errors:[{message:'not authorized'}]}))))
     await expect(runArchive(env,1)).rejects.toThrow('Cloudflare 查询失败')
-    expect(sqlite.prepare('SELECT status FROM archive_runs').get().status).toBe('failed')
-    expect(sqlite.prepare('SELECT COUNT(*) AS n FROM cloudflare_daily').get().n).toBe(0)
+    expect(sqlite.prepare('SELECT status FROM site_archive_runs').get().status).toBe('failed')
+    expect(sqlite.prepare('SELECT COUNT(*) AS n FROM site_cloudflare_daily').get().n).toBe(0)
     vi.unstubAllGlobals()
   })
 })

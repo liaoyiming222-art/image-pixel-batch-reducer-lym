@@ -1,10 +1,11 @@
 type Tool = 'app' | 'compress' | 'inspect' | 'folders'
 type Props = Record<string, number | string | boolean>
-interface Event { id: string; user: string; session: string; task: string; name: string; tool: Tool; at: number; version: string; props: Props }
+interface Event { site?:string; id: string; user: string; session: string; task: string; name: string; tool: Tool; at: number; version: string; props: Props }
 const USER_KEY = 'pixelflow.analytics.user.v1'
 const SESSION_KEY = 'pixelflow.analytics.session.v1'
 const QUEUE_KEY = 'pixelflow.analytics.queue.v1'
-const enabled = () => import.meta.env.PROD && location.hostname === 'pixelflow-image-tools.pages.dev' && !location.pathname.startsWith('/admin') && localStorage.getItem('pixelflow.analytics.disabled') !== '1'
+const siteId=()=>({'pixelflow-image-tools.pages.dev':'pixelflow-image-tools','pixelfloweverybody.pages.dev':'pixelfloweverybody'} as Record<string,string>)[location.hostname]
+const enabled = () => import.meta.env.PROD && !!siteId() && !location.pathname.startsWith('/admin') && localStorage.getItem('pixelflow.analytics.disabled') !== '1'
 let memoryUser = ''
 let queue: Event[] = []
 let loaded = false
@@ -30,7 +31,8 @@ export function track(name: string, tool: Tool, props: Props = {}, task = '') {
   try {
     if (!enabled()) return
     if (!loaded) { loaded = true; try { const saved = JSON.parse(localStorage.getItem(QUEUE_KEY) || '[]'); if (Array.isArray(saved)) queue = saved.filter(e => Date.now() - e.at < 24 * 60 * 60 * 1000).slice(-100) } catch { /* empty queue */ } }
-    queue.push({ id: crypto.randomUUID(), ...identity(), task, name, tool, at: Date.now(), version: 'analytics-v1', props })
+    queue=queue.filter(e=>(e.site||'pixelflow-image-tools')===siteId())
+    queue.push({ site:siteId(),id: crypto.randomUUID(), ...identity(), task, name, tool, at: Date.now(), version: 'analytics-v1', props })
     queue = queue.slice(-100); persist(); retry = 0
     if (!timer) timer = setTimeout(() => { timer = undefined; void flush() }, 1500)
   } catch { /* analytics must never interrupt local tools */ }

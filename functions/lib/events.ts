@@ -6,14 +6,15 @@ const allowed: Record<string, string[]> = {
   folder_create_started: ['count', 'mode'], folder_create_finished: ['count', 'created', 'children', 'completedExisting', 'existing', 'duplicate', 'failed', 'duration', 'mode'],
 }
 const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
-export interface Event { id: string; user: string; session: string; task: string; name: string; tool: string; at: number; version: string; props: Record<string, number | string> }
+export interface Event { site?:string; id: string; user: string; session: string; task: string; name: string; tool: string; at: number; version: string; props: Record<string, number | string> }
 export function validateEvent(input: unknown, now = Date.now()): Event | null {
   if (!input || typeof input !== 'object') return null
   const e = input as Event
   if (['id','user','session','task','name','tool','version'].some(key => typeof (e as unknown as Record<string,unknown>)[key] !== 'string')) return null
   if (!uuid.test(e.id) || !uuid.test(e.user) || !uuid.test(e.session) || (e.task !== '' && !uuid.test(e.task))) return null
   if (!Object.hasOwn(allowed, e.name) || !['app', 'compress', 'inspect', 'folders'].includes(e.tool) || e.version !== 'analytics-v1') return null
-  if (Object.keys(e).some(key => !['id','user','session','task','name','tool','at','version','props'].includes(key))) return null
+  if(e.site!==undefined&&(typeof e.site!=='string'||!/^[a-z0-9-]{1,64}$/.test(e.site)))return null
+  if (Object.keys(e).some(key => !['site','id','user','session','task','name','tool','at','version','props'].includes(key))) return null
   if (e.name === 'tool_open' && e.tool === 'app') return null
   if (e.name === 'output_action' && !['compress','inspect'].includes(e.tool)) return null
   if (!Number.isInteger(e.at) || e.at > now + 5 * 60000 || e.at < now - 48 * 3600000) return null

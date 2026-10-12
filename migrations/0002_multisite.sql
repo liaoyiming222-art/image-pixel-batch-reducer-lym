@@ -1,0 +1,14 @@
+CREATE TABLE sites (id TEXT PRIMARY KEY,name TEXT NOT NULL,host TEXT NOT NULL UNIQUE,launch_day TEXT NOT NULL,traffic_source TEXT NOT NULL,cf_site_tag TEXT,enabled INTEGER NOT NULL DEFAULT 1);
+INSERT INTO sites VALUES('pixelflow-image-tools','PixelFlow 图片工具','pixelflow-image-tools.pages.dev','2026-07-31','cloudflare','1117e29fca3e4a9abd9dac93084c9a7d',1);
+INSERT INTO sites VALUES('pixelfloweverybody','PixelFlow Everybody','pixelfloweverybody.pages.dev','2026-10-10','events',NULL,1);
+ALTER TABLE events ADD COLUMN site_id TEXT NOT NULL DEFAULT 'pixelflow-image-tools';
+ALTER TABLE users ADD COLUMN site_id TEXT NOT NULL DEFAULT 'pixelflow-image-tools';
+ALTER TABLE sessions ADD COLUMN site_id TEXT NOT NULL DEFAULT 'pixelflow-image-tools';
+CREATE INDEX events_site_day ON events(site_id,day);
+CREATE INDEX events_site_user ON events(site_id,user_id);
+CREATE TABLE site_daily_metrics(site_id TEXT NOT NULL,day TEXT NOT NULL,tool TEXT NOT NULL,metric TEXT NOT NULL,value REAL NOT NULL,updated_at INTEGER NOT NULL,PRIMARY KEY(site_id,day,tool,metric));
+INSERT INTO site_daily_metrics SELECT 'pixelflow-image-tools',day,tool,metric,value,updated_at FROM daily_metrics;
+CREATE TABLE site_cloudflare_daily(site_id TEXT NOT NULL,day TEXT NOT NULL,source TEXT NOT NULL,metric TEXT NOT NULL,value REAL NOT NULL,fetched_at INTEGER NOT NULL,PRIMARY KEY(site_id,day,source,metric));
+INSERT INTO site_cloudflare_daily SELECT 'pixelflow-image-tools',day,source,metric,value,fetched_at FROM cloudflare_daily;
+CREATE TABLE site_archive_runs(id INTEGER PRIMARY KEY AUTOINCREMENT,site_id TEXT NOT NULL,started_at INTEGER NOT NULL,finished_at INTEGER,status TEXT NOT NULL,message TEXT NOT NULL);
+INSERT INTO site_archive_runs(site_id,started_at,finished_at,status,message) SELECT 'pixelflow-image-tools',started_at,finished_at,status,message FROM archive_runs;

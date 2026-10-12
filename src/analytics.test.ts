@@ -2,6 +2,13 @@ import { afterEach,beforeEach,describe,expect,it,vi } from 'vitest'
 beforeEach(()=>{vi.resetModules();vi.useFakeTimers();localStorage.clear();vi.stubEnv('PROD',true);vi.stubGlobal('location',{hostname:'pixelflow-image-tools.pages.dev',pathname:'/'});vi.stubGlobal('fetch',vi.fn(async()=>new Response('{}',{status:200})))})
 afterEach(()=>{vi.useRealTimers();vi.unstubAllGlobals();vi.unstubAllEnvs()})
 describe('浏览器采集',()=>{
+  it('第二个正式站点发送自己的标识，清理另一站点的待发事件',async()=>{
+    vi.stubGlobal('location',{hostname:'pixelfloweverybody.pages.dev',pathname:'/'})
+    localStorage.setItem('pixelflow.analytics.queue.v1',JSON.stringify([{site:'pixelflow-image-tools',at:Date.now(),id:'legacy'}]))
+    const {track}=await import('./analytics');track('page_view','app');await vi.advanceTimersByTimeAsync(1500)
+    const events=JSON.parse(String(vi.mocked(fetch).mock.calls[0][1]?.body)).events
+    expect(events).toHaveLength(1);expect(events[0].site).toBe('pixelfloweverybody')
+  })
   it('浏览器用户编号持久化，新会话不会增加用户编号',async()=>{
     const {track}=await import('./analytics');track('page_view','app');await vi.advanceTimersByTimeAsync(1500)
     const first=JSON.parse(String(vi.mocked(fetch).mock.calls[0][1]?.body)).events[0]

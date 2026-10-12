@@ -1,15 +1,17 @@
 import { beijingDay, type Env, json } from '../functions/lib/db'
+import { DEFAULT_SITE,getSite,listSites } from '../functions/lib/sites'
 import { summarizeRecent, summarizeDay } from '../functions/lib/summary'
 interface ScheduledEvent { scheduledTime: number }
 interface ExecutionContext { waitUntil(promise:Promise<unknown>):void }
-export async function archiveDay(env:Env,day:string,fetcher:typeof fetch=fetch) {
+export async function archiveDay(env:Env,day:string,fetcher:typeof fetch=fetch,siteId=DEFAULT_SITE) {
   if (!env.CLOUDFLARE_API_TOKEN || !env.CF_ACCOUNT_ID) throw new Error('请配置归档密钥和账户编号。')
   if (!/^[a-f0-9]{32}$/i.test(env.CF_ACCOUNT_ID)) throw new Error('账户编号格式不正确。')
-  const host=env.ANALYTICS_HOST||'pixelflow-image-tools.pages.dev'
+  const registry=await getSite(env.DB,siteId);if(!registry)throw new Error('站点不存在。')
+  const host=registry.host
   if (!/^[a-z0-9.-]+$/.test(host)) throw new Error('正式域名格式不正确。')
   const start=new Date(`${day}T00:00:00+08:00`),end=new Date(start.getTime()+86400000)
   if (Number.isNaN(start.getTime())) throw new Error('日期格式不正确。')
-  const site=env.CF_SITE_TAG ? `,siteTag:${JSON.stringify(env.CF_SITE_TAG)}` : ''
+  const site=registry.cf_site_tag ? `,siteTag:${JSON.stringify(registry.cf_site_tag)}` : ''
   const query=`{viewer{accounts(filter:{accountTag:${JSON.stringify(env.CF_ACCOUNT_ID)}}){rumPageloadEventsAdaptiveGroups(limit:1,filter:{datetime_geq:${JSON.stringify(start.toISOString())},datetime_lt:${JSON.stringify(end.toISOString())},requestHost:${JSON.stringify(host)}${site}}){count sum{visits}}}}}`
   const response=await fetcher('https://api.cloudflare.com/client/v4/graphql',{method:'POST',headers:{Authorization:`Bearer ${env.CLOUDFLARE_API_TOKEN}`,'Content-Type':'application/json'},body:JSON.stringify({query}),signal:AbortSignal.timeout(20000)})
   const body=await response.json() as {errors?:unknown[];data?:{viewer?:{accounts?:Array<{rumPageloadEventsAdaptiveGroups?:Array<{count:number;sum:{visits:number}}>}>}}}
@@ -18,23 +20,24 @@ export async function archiveDay(env:Env,day:string,fetcher:typeof fetch=fetch) 
   if (!Array.isArray(groups)) throw new Error('Cloudflare 未返回预期数据集。')
   const pageviews=groups.reduce((sum,row)=>sum+Number(row.count),0),visits=groups.reduce((sum,row)=>sum+Number(row.sum.visits),0)
   if (!Number.isFinite(pageviews)||!Number.isFinite(visits)||pageviews<0||visits<0) throw new Error('Cloudflare 返回了无效指标。')
-  await env.DB.batch([['pageviews',pageviews],['visits',visits]].map(([metric,value])=>env.DB.prepare('INSERT INTO cloudflare_daily(day,source,metric,value,fetched_at) VALUES(?,?,?,?,?) ON CONFLICT(day,source,metric) DO UPDATE SET value=excluded.value,fetched_at=excluded.fetched_at').bind(day,'cloudflare_web_analytics',metric,value,Date.now())))
+  await env.DB.batch([['pageviews',pageviews],['visits',visits]].map(([metric,value])=>env.DB.prepare('INSERT INTO site_cloudflare_daily(site_id,day,source,metric,value,fetched_at) VALUES(?,?,?,?,?,?) ON CONFLICT(site_id,day,source,metric) DO UPDATE SET value=excluded.value,fetched_at=excluded.fetched_at').bind(siteId,day,'cloudflare_web_analytics',metric,value,Date.now())))
 }
-export async function runArchive(env:Env,days=3,offset=0) {
+export async function runArchive(env:Env,days=3,offset=0,siteId=DEFAULT_SITE) {
+  const registry=await getSite(env.DB,siteId);if(!registry)throw new Error('站点不存在。')
   const now=Date.now()
-  await env.DB.prepare("INSERT INTO archive_runs(started_at,status,message) VALUES(?,'running','正在汇总和归档')").bind(now).run()
+  await env.DB.prepare("INSERT INTO site_archive_runs(site_id,started_at,status,message) VALUES(?,?,'running','正在汇总和归档')").bind(siteId,now).run()
   try {
-    await summarizeRecent(env.DB)
-    if(offset===0)await archiveDay(env,beijingDay(now))
-    for(let index=1;index<=days;index++){const day=beijingDay(now-(offset+index)*86400000);await summarizeDay(env.DB,day);await archiveDay(env,day)}
+    await summarizeRecent(env.DB,siteId)
+    if(registry.traffic_source==='cloudflare'&&offset===0)await archiveDay(env,beijingDay(now),fetch,siteId)
+    for(let index=1;index<=days;index++){const day=beijingDay(now-(offset+index)*86400000);await summarizeDay(env.DB,day,siteId);if(registry.traffic_source==='cloudflare')await archiveDay(env,day,fetch,siteId)}
     const first=beijingDay(now-(offset+days)*86400000),last=beijingDay(now-(offset+1)*86400000)
-    await env.DB.prepare("UPDATE archive_runs SET finished_at=?,status='success',message=? WHERE started_at=?").bind(Date.now(),`已覆盖更新 ${first} 至 ${last}，共 ${days} 天。`,now).run()
+    await env.DB.prepare("UPDATE site_archive_runs SET finished_at=?,status='success',message=? WHERE started_at=? AND site_id=?").bind(Date.now(),`已覆盖更新 ${first} 至 ${last}，共 ${days} 天。`,now,siteId).run()
   } catch(error) {
-    await env.DB.prepare("UPDATE archive_runs SET finished_at=?,status='failed',message=? WHERE started_at=?").bind(Date.now(),error instanceof Error?error.message:'归档失败',now).run()
+    await env.DB.prepare("UPDATE site_archive_runs SET finished_at=?,status='failed',message=? WHERE started_at=? AND site_id=?").bind(Date.now(),error instanceof Error?error.message:'归档失败',now,siteId).run()
     throw error
   }
 }
 export default {
-  scheduled(_event:ScheduledEvent,env:Env,ctx:ExecutionContext){ctx.waitUntil(runArchive(env))},
+  scheduled(_event:ScheduledEvent,env:Env,ctx:ExecutionContext){ctx.waitUntil((async()=>{const sites=await listSites(env.DB);const results=await Promise.allSettled(sites.results.map(site=>runArchive(env,3,0,site.id)));if(results.some(r=>r.status==='rejected'))throw new Error('部分站点归档失败')})())},
   fetch(){return json({error:'此服务只执行定时归档，不提供公开接口。'},404)},
 }
