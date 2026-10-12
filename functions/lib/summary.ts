@@ -1,4 +1,5 @@
 import { beijingDay, type Database } from './db'
+import { buildDashboard,type DailyRow,type IdentityRow,type TrafficRow } from './dashboard'
 export function metricColumns() {
   const columns: Record<string, string> = {
     pageviews: "CASE WHEN name='page_view' THEN 1 ELSE 0 END",
@@ -46,5 +47,12 @@ export async function readStats(db: Database, start: string, end: string) {
   const first = await db.prepare('SELECT MIN(occurred_at) AS first_at,MAX(received_at) AS last_at FROM events').first<{first_at:number|null;last_at:number|null}>()
   const archive = await db.prepare('SELECT day,source,metric,value,fetched_at FROM cloudflare_daily WHERE day>=? AND day<=? ORDER BY day DESC').bind(start,end).all()
   const run = await db.prepare('SELECT started_at,finished_at,status,message FROM archive_runs ORDER BY id DESC LIMIT 1').first()
-  return {totals,tools,trend:Object.entries(trend).map(([day,values])=>({day,...values})),firstAt:first?.first_at,lastAt:first?.last_at,archive:archive.results,archiveRun:run,timezone:'Asia/Shanghai',start,end}
+  const allRows=await db.prepare(`SELECT day,tool,${selection} FROM events GROUP BY day,tool ORDER BY day`).all<DailyRow>()
+  const allArchive=await db.prepare('SELECT day,metric,value,fetched_at FROM cloudflare_daily WHERE source=? ORDER BY day').bind('cloudflare_web_analytics').all<TrafficRow>()
+  const lifetime=await db.prepare('SELECT COUNT(DISTINCT user_id) AS users,COUNT(DISTINCT session_id) AS sessions,COUNT(DISTINCT CASE WHEN effective=1 THEN user_id END) AS effective_users FROM events').first<Record<string,number>>()
+  const monthly=await db.prepare("SELECT substr(day,1,7) AS bucket,COUNT(DISTINCT user_id) AS users,COUNT(DISTINCT session_id) AS sessions,COUNT(DISTINCT CASE WHEN effective=1 THEN user_id END) AS effective_users FROM events GROUP BY substr(day,1,7)").all<IdentityRow>()
+  const daily=await db.prepare('SELECT day AS bucket,COUNT(DISTINCT user_id) AS users,COUNT(DISTINCT session_id) AS sessions,COUNT(DISTINCT CASE WHEN effective=1 THEN user_id END) AS effective_users FROM events WHERE day>=? AND day<=? GROUP BY day').bind(start,end).all<IdentityRow>()
+  const dashboard=buildDashboard(allRows.results,allArchive.results,{lifetime:lifetime||{},period:identities||{},monthly:monthly.results,daily:daily.results},first?.first_at||null,start,end)
+  const latestArchive=allArchive.results.reduce((latest,row)=>Math.max(latest,row.fetched_at||0),0)||null
+  return {totals,tools,trend:Object.entries(trend).map(([day,values])=>({day,...values})),firstAt:first?.first_at,lastAt:first?.last_at,archive:archive.results,archiveRun:run,timezone:'Asia/Shanghai',start,end,dashboard,latestArchive}
 }

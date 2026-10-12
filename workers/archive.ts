@@ -25,6 +25,7 @@ export async function runArchive(env:Env,days=3,offset=0) {
   await env.DB.prepare("INSERT INTO archive_runs(started_at,status,message) VALUES(?,'running','正在汇总和归档')").bind(now).run()
   try {
     await summarizeRecent(env.DB)
+    if(offset===0)await archiveDay(env,beijingDay(now))
     for(let index=1;index<=days;index++){const day=beijingDay(now-(offset+index)*86400000);await summarizeDay(env.DB,day);await archiveDay(env,day)}
     const first=beijingDay(now-(offset+days)*86400000),last=beijingDay(now-(offset+1)*86400000)
     await env.DB.prepare("UPDATE archive_runs SET finished_at=?,status='success',message=? WHERE started_at=?").bind(Date.now(),`已覆盖更新 ${first} 至 ${last}，共 ${days} 天。`,now).run()

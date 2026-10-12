@@ -24,6 +24,17 @@ beforeEach(()=>{
 })
 afterEach(()=>{sqlite.close();vi.useRealTimers();vi.restoreAllMocks()})
 describe('数据接收与累计',()=>{
+  it('同一个用户跨月出现，累计去重一次，月度各算一次',async()=>{
+    const uid=user()
+    for(const at of [Date.parse('2026-09-30T15:59:00Z'),Date.parse('2026-09-30T16:01:00Z')]){
+      const day=new Date(at+8*3600000).toISOString().slice(0,10)
+      sqlite.prepare('INSERT INTO events(id,user_id,session_id,task_id,name,tool,occurred_at,received_at,day,version,props,effective) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)').run(user(),uid,user(),'','page_view','app',at,at,day,'analytics-v1','{}',0)
+    }
+    const all=await readStats(db,'2026-07-31','2026-10-10'),filtered=await readStats(db,'2026-10-01','2026-10-10')
+    expect(all.dashboard.lifetime.users).toBe(1)
+    expect(all.dashboard.monthly.filter(m=>['2026-09','2026-10'].includes(m.month)).map(m=>m.users)).toEqual([1,1])
+    expect(filtered.dashboard.lifetime.users).toBe(1);expect(filtered.totals.users).toBe(1)
+  })
   it('重试相同事件不重复计数，跨日期用户仍去重',async()=>{
     const e=event();const first=await ingest({request:request('/api/events',{events:[e]}),env});expect(first.status).toBe(200)
     expect((await ingest({request:request('/api/events',{events:[e]}),env})).status).toBe(200)
