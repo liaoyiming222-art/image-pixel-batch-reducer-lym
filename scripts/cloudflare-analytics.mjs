@@ -33,7 +33,7 @@ try {
   const siteTag=metadata.build_config?.web_analytics_tag
   const config={name:project,pages_build_output_dir:'dist',compatibility_date:'2026-10-10',d1_databases:[{binding:'DB',database_name:'pixelflow-analytics',database_id:database.uuid,migrations_dir:'migrations'}],vars:{ANALYTICS_HOST:`${project}.pages.dev`,CF_ACCOUNT_ID:account,...(siteTag?{CF_SITE_TAG:siteTag}:{})}}
   fs.writeFileSync('wrangler.jsonc',JSON.stringify(config,null,2)+'\n')
-  fs.writeFileSync('workers/wrangler.jsonc',JSON.stringify({name:'pixelflow-analytics-archive',main:'archive.ts',compatibility_date:'2026-10-10',triggers:{crons:['15 19 * * *']},d1_databases:[{binding:'DB',database_name:'pixelflow-analytics',database_id:database.uuid}],vars:{ANALYTICS_HOST:`${project}.pages.dev`,CF_ACCOUNT_ID:account,...(siteTag?{CF_SITE_TAG:siteTag}:{})}},null,2)+'\n')
+  fs.writeFileSync('workers/wrangler.jsonc',JSON.stringify({name:'pixelflow-analytics-archive',main:'archive.ts',compatibility_date:'2026-10-10',triggers:{crons:[]},d1_databases:[{binding:'DB',database_name:'pixelflow-analytics',database_id:database.uuid}],vars:{ANALYTICS_HOST:`${project}.pages.dev`,CF_ACCOUNT_ID:account,...(siteTag?{CF_SITE_TAG:siteTag}:{})}},null,2)+'\n')
   wrangler(['d1','migrations','apply','DB','--remote'])
   let secrets
   if(fs.existsSync('analytics-cloudflare.local.json'))secrets=JSON.parse(fs.readFileSync('analytics-cloudflare.local.json','utf8'))

@@ -1,3 +1,4 @@
+import {readLiveStats} from '../functions/lib/live'
 // @vitest-environment node
 import { createRequire } from 'node:module'
 import { readFileSync } from 'node:fs'
@@ -142,4 +143,27 @@ describe('Cloudflare 归档',()=>{
     expect(sqlite.prepare('SELECT COUNT(*) AS n FROM site_cloudflare_daily').get().n).toBe(0)
     vi.unstubAllGlobals()
   })
+})
+
+describe('实时精简统计',()=>{
+ it('直接读取事件，忽略归档，跨北京时间月份独立汇总且累计不受日期筛选影响',async()=>{
+  const insert=(at:number,name:string,props:unknown,site='pixelflow-image-tools')=>sqlite.prepare('INSERT INTO events(id,user_id,session_id,task_id,name,tool,occurred_at,received_at,day,version,props,effective,site_id) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)').run(user(),user(),user(),'',name,'app',at,at,new Date(at+8*3600000).toISOString().slice(0,10),'analytics-v1',JSON.stringify(props),0,site)
+  insert(Date.parse('2026-09-30T15:59:00Z'),'page_view',{})
+  insert(Date.parse('2026-09-30T16:01:00Z'),'page_view',{})
+  insert(now,'image_process_finished',{success:3,skipped:5,failed:2})
+  insert(now,'inspection_finished',{count:8})
+  insert(now,'page_view',{},'pixelfloweverybody')
+  sqlite.prepare('INSERT INTO site_cloudflare_daily VALUES(?,?,?,?,?,?)').run('pixelflow-image-tools','2026-10-10','cloudflare_web_analytics','pageviews',9999,now)
+  const a=await readLiveStats(db,'2026-10-01','2026-10-31')
+  expect(a.lifetime).toEqual({pageviews:2,processed:3,inspected:8})
+  expect(a.period).toEqual({pageviews:1,processed:3,inspected:8})
+  expect(a.monthly).toEqual([{month:'2026-10',pageviews:1,processed:3,inspected:8},{month:'2026-09',pageviews:1,processed:0,inspected:0}])
+  expect((await readLiveStats(db,'2026-10-10','2026-10-10')).lifetime).toEqual(a.lifetime)
+  expect((await readLiveStats(db,'2026-10-01','2026-10-31','pixelfloweverybody')).lifetime).toEqual({pageviews:1,processed:0,inspected:0})
+ })
+ it('没有事件的站点保持未采集状态，不继承其他站点历史',async()=>{
+  await ingest({request:request('/api/events',{events:[event()]}),env})
+  const b=await readLiveStats(db,'2026-10-01','2026-10-31','pixelfloweverybody')
+  expect(b.firstAt).toBeNull();expect(b.monthly).toEqual([]);expect(b.series).toEqual([])
+ })
 })

@@ -35,3 +35,10 @@ describe('浏览器采集',()=>{
     expect(events.map((e:{props:{count:number}})=>e.props.count)).toEqual([2,1])
   })
 })
+
+it('存储不可用仍采集，300毫秒发送且不阻塞产品',async()=>{
+ vi.spyOn(Storage.prototype,'getItem').mockImplementation(()=>{throw new Error('blocked storage')})
+ const {track}=await import('./analytics');track('page_view','app')
+ await vi.advanceTimersByTimeAsync(299);expect(fetch).not.toHaveBeenCalled()
+ await vi.advanceTimersByTimeAsync(1);expect(fetch).toHaveBeenCalledTimes(1)
+})
