@@ -42,3 +42,11 @@ it('存储不可用仍采集，300毫秒发送且不阻塞产品',async()=>{
  await vi.advanceTimersByTimeAsync(299);expect(fetch).not.toHaveBeenCalled()
  await vi.advanceTimersByTimeAsync(1);expect(fetch).toHaveBeenCalledTimes(1)
 })
+
+it('压缩入口完成读取即算检测，切换比例工具和更新队列不重复计算',async()=>{
+ const {trackInspection}=await import('./analytics')
+ trackInspection(['a','b'],'compress');trackInspection(['a','b'],'inspect');trackInspection(['a','b','c'],'inspect')
+ await vi.advanceTimersByTimeAsync(300)
+ const events=JSON.parse(String(vi.mocked(fetch).mock.calls[0][1]?.body)).events
+ expect(events.map((e:{tool:string;props:{count:number}})=>[e.tool,e.props.count])).toEqual([['compress',2],['inspect',1]])
+})

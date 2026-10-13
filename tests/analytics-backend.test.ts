@@ -167,3 +167,10 @@ describe('实时精简统计',()=>{
   expect(b.firstAt).toBeNull();expect(b.monthly).toEqual([]);expect(b.series).toEqual([])
  })
 })
+
+it('压缩入口检测被接收，重试不重复增加检测数量',async()=>{
+ const e=event('inspection_finished','compress',{count:3},{task:user()})
+ expect((await ingest({request:request('/api/events',{events:[e]}),env})).status).toBe(200)
+ await ingest({request:request('/api/events',{events:[e]}),env})
+ expect((await readLiveStats(db,'2026-10-01','2026-10-31')).lifetime).toEqual({pageviews:0,processed:0,inspected:3})
+})

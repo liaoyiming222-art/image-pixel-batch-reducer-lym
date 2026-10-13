@@ -18,7 +18,7 @@ export function validateEvent(input: unknown, now = Date.now()): Event | null {
   if (e.name === 'tool_open' && e.tool === 'app') return null
   if (e.name === 'output_action' && !['compress','inspect'].includes(e.tool)) return null
   if (!Number.isInteger(e.at) || e.at > now + 5 * 60000 || e.at < now - 48 * 3600000) return null
-  if ((e.name === 'page_view' && e.tool !== 'app') || (e.name.startsWith('folder_') && e.tool !== 'folders') || (e.name === 'inspection_finished' && e.tool !== 'inspect') || (e.name.startsWith('image_') && !['compress', 'inspect'].includes(e.tool))) return null
+  if ((e.name === 'page_view' && e.tool !== 'app') || (e.name.startsWith('folder_') && e.tool !== 'folders') || (e.name === 'inspection_finished' && !['compress','inspect'].includes(e.tool)) || (e.name.startsWith('image_') && !['compress', 'inspect'].includes(e.tool))) return null
   if (!e.props || typeof e.props !== 'object' || Array.isArray(e.props)) return null
   for (const [key, value] of Object.entries(e.props)) {
     if (!allowed[e.name].includes(key)) return null

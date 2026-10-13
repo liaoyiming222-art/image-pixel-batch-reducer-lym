@@ -10,7 +10,7 @@ import { findClosestRatio } from './tools/inspector/utils'
 import { ImageInspector } from './tools/inspector/ImageInspector'
 import { FolderCreator } from './tools/folder/FolderCreator'
 import './suite.css'
-import { newTaskId, track } from './analytics'
+import { newTaskId, track, trackInspection } from './analytics'
 
 const labels: Record<TaskStatus, string> = {
   pending: '待处理', processing: '处理中', done: '处理完成', skipped: '无需处理', error: '处理失败',
@@ -97,7 +97,7 @@ function CompressionTool() {
         errors.push(`${file.name}：${error instanceof Error ? error.message : '无法读取'}`)
       } finally { decoded?.close() }
     }
-    if (imported.length) setTasks(current => [...current, ...imported])
+    if (imported.length) { trackInspection(imported.map(task=>task.id), 'compress'); setTasks(current => [...current, ...imported]) }
     track('image_import_finished', 'compress', { added: imported.length, duplicate: duplicateCount, invalid: invalid.length, failed: errors.length }, newTaskId())
     const notices = []
     if (invalid.length) notices.push(`已忽略 ${invalid.length} 个不支持的文件`)

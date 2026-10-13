@@ -67,8 +67,8 @@ export function initializeAnalytics() {
   })
 }
 const inspected = new Set<string>()
-export function trackInspection(ids: string[]) {
+export function trackInspection(ids: string[], tool: 'compress' | 'inspect' = 'inspect') {
   const fresh = ids.filter(id => !inspected.has(id))
   fresh.forEach(id => inspected.add(id))
-  if (fresh.length) track('inspection_finished', 'inspect', { count: fresh.length }, newTaskId())
+  if (fresh.length) track('inspection_finished', tool, { count: fresh.length }, newTaskId())
 }
