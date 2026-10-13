@@ -50,3 +50,14 @@ it('压缩入口完成读取即算检测，切换比例工具和更新队列不�
  const events=JSON.parse(String(vi.mocked(fetch).mock.calls[0][1]?.body)).events
  expect(events.map((e:{tool:string;props:{count:number}})=>[e.tool,e.props.count])).toEqual([['compress',2],['inspect',1]])
 })
+
+it('追加图片只增加新增数量，清空后新图片编号可以再次计数',async()=>{
+ const {trackInspection}=await import('./analytics')
+ const first=Array.from({length:100},(_,i)=>'first-'+i)
+ trackInspection(first,'compress');trackInspection(first,'inspect')
+ trackInspection([...first,...Array.from({length:20},(_,i)=>'added-'+i)],'compress')
+ trackInspection(Array.from({length:100},(_,i)=>'reimport-'+i),'compress')
+ await vi.advanceTimersByTimeAsync(300)
+ const events=JSON.parse(String(vi.mocked(fetch).mock.calls[0][1]?.body)).events
+ expect(events.map((e:{props:{count:number}})=>e.props.count)).toEqual([100,20,100])
+})
