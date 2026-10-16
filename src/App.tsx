@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react'
 import JSZip from 'jszip'
-import { Archive, BarChart3, CheckCircle2, Download, FolderOpen, FolderPlus, Home, ImageDown, ImagePlus, Lock, Play, RotateCcw, Settings2, Sparkles, Trash2, XCircle, Zap } from 'lucide-react'
+import { Archive, BarChart3, CheckCircle2, Download, FolderOpen, FolderPlus, Home, ImageDown, ImagePlus, Lock, Play, RotateCcw, Search, Settings2, Sparkles, Trash2, XCircle, Zap } from 'lucide-react'
 import { createPreviewUrl, readImage, resizeToTarget } from './imageProcessor'
 import type { ImageTask, TaskStatus } from './types'
 import { aspectRatio, formatBytes, isAcceptedImage, MB, outputName, ratioName } from './utils'
@@ -9,6 +9,7 @@ import { useTransientNotice } from './useTransientNotice'
 import { findClosestRatio } from './tools/inspector/utils'
 import { ImageInspector } from './tools/inspector/ImageInspector'
 import { FolderCreator } from './tools/folder/FolderCreator'
+import { ImageFinder } from './tools/finder/ImageFinder'
 import './suite.css'
 import { newTaskId, track, trackInspection } from './analytics'
 
@@ -269,12 +270,13 @@ function CompressionTool() {
   </div>
 }
 
-type ToolKey = 'home' | 'compress' | 'inspect' | 'folders'
+type ToolKey = 'home' | 'compress' | 'inspect' | 'folders' | 'finder'
 
 const tools = [
   { key: 'compress' as const, title: '快速图片压缩', description: '转换 JPG，控制文件大小与最长边。', icon: ImageDown, color: 'blue' },
   { key: 'inspect' as const, title: '比例检测与分组', description: '读取图片尺寸，按画幅比例整理下载。', icon: BarChart3, color: 'purple' },
   { key: 'folders' as const, title: '文件夹批量处理', description: '批量创建文件夹，统一处理名称与规则。', icon: FolderPlus, color: 'green' },
+  { key: 'finder' as const, title: '按名称查找图片', description: '导入图名清单，查找共享目录并打包下载。', icon: Search, color: 'blue' },
 ]
 
 function SuiteHome({ onOpen }: { onOpen: (tool: ToolKey) => void }) {
@@ -286,6 +288,7 @@ function SuiteHome({ onOpen }: { onOpen: (tool: ToolKey) => void }) {
         {tool.key === 'compress' && <><div className="picture-sheet back"><ImagePlus size={38}/></div><div className="picture-sheet front"><ImageDown size={36}/><span>JPG</span></div><div className="art-line"/></>}
         {tool.key === 'inspect' && <><div className="ratio-shape portrait">2:3</div><div className="ratio-shape square">1:1</div><div className="ratio-shape landscape">3:2</div></>}
         {tool.key === 'folders' && <div className="folder-tree"><div><FolderOpen size={22}/><span>项目素材</span></div><div className="tree-child"><FolderPlus size={18}/><span>AI</span></div><div className="tree-child"><FolderPlus size={18}/><span>原图</span></div></div>}
+        {tool.key === 'finder' && <div className="finder-art"><div><Search size={22}/><span>图名清单</span></div><div><CheckCircle2 size={17}/><span>找到图片</span><Archive size={20}/></div></div>}
       </div>
     </button>)}</section>
     <div className="home-privacy"><Lock size={14}/>文件内容仅在本地处理；收集匿名数量与状态统计以改善工具。</div>
@@ -294,11 +297,12 @@ function SuiteHome({ onOpen }: { onOpen: (tool: ToolKey) => void }) {
 
 export default function App() {
   const [activeTool, setActiveTool] = useState<ToolKey>('home')
-  const openTool = (tool: ToolKey) => { if (tool !== activeTool && tool !== 'home') track('tool_open', tool); setActiveTool(tool) }
+  const openTool = (tool: ToolKey) => { if (tool !== activeTool && tool !== 'home' && tool !== 'finder') track('tool_open', tool); setActiveTool(tool) }
   return <ImageWorkspaceProvider><div className="suite-shell"><nav className="suite-nav"><button className="suite-brand" onClick={() => openTool('home')}><span><ImagePlus size={19} /></span><b>PixelFlow</b><small>本地效率工具</small></button><div className="suite-nav-links"><button className={activeTool === 'home' ? 'active' : ''} onClick={() => openTool('home')}><Home size={15} />首页</button>{tools.map(tool => <button key={tool.key} className={activeTool === tool.key ? 'active' : ''} onClick={() => openTool(tool.key)}><tool.icon size={15} />{tool.title}</button>)}</div><div className="nav-local"><span/>本地运行</div></nav>
     {activeTool === 'home' && <SuiteHome onOpen={openTool} />}
     {activeTool === 'compress' && <CompressionTool />}
     {activeTool === 'inspect' && <ImageInspector />}
     {activeTool === 'folders' && <FolderCreator />}
+    <div hidden={activeTool !== 'finder'}><ImageFinder /></div>
   </div></ImageWorkspaceProvider>
 }

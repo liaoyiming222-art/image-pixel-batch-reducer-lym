@@ -11,10 +11,20 @@ describe('图片尺寸提取', () => {
     expect(getOrientation(1920, 1080)).toBe('横图')
     expect(findClosestRatio(1920, 1080).label).toBe('16:9')
     expect(simplifyRatio(1920, 1080)).toContain('16:9')
-    expect(findClosestRatio(900, 2100).label).toBe('9:21')
+    expect(findClosestRatio(900, 2100).label).toBe('9:16')
     expect(findClosestRatio(900, 1200).label).toBe('3:4')
     expect(findClosestRatio(1500, 1000).label).toBe('3:2')
     expect(findClosestRatio(900, 1000).label).not.toBe('9:10')
+  })
+
+  it.each([
+    [1000, 3970, '1:4'], [3970, 1000, '4:1'],
+    [1000, 7900, '1:8'], [7900, 1000, '8:1'],
+  ])('将 %i × %i 的长图匹配到 %s，并用于压缩导出命名', (width, height, expected) => {
+    const closest = findClosestRatio(width, height)
+    expect(closest.label).toBe(expected)
+    expect(closest.errorPercent).toBeLessThan(2)
+    expect(outputName('长图.png', 'image/jpeg', closest.label)).toBe(`长图_${expected.replace(':', '比')}_resized.jpg`)
   })
 
   it('生成 Windows 可用的比例压缩包名并避免组内同名文件覆盖', () => {

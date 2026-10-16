@@ -2,12 +2,11 @@ import type { ImageRecord, LoadedImageRecord, Orientation } from './types'
 import { createPreviewUrl, readImage } from '../../imageProcessor'
 
 export const STANDARD_RATIOS = [
-  { label: '1:1', value: 1 }, { label: '1:2', value: 1 / 2 }, { label: '2:1', value: 2 },
-  { label: '1:3', value: 1 / 3 }, { label: '3:1', value: 3 }, { label: '2:3', value: 2 / 3 },
-  { label: '3:4', value: 3 / 4 }, { label: '3:2', value: 3 / 2 }, { label: '4:3', value: 4 / 3 },
-  { label: '4:5', value: 4 / 5 }, { label: '5:4', value: 5 / 4 },
-  { label: '9:16', value: 9 / 16 }, { label: '21:9', value: 21 / 9 }, { label: '9:21', value: 9 / 21 },
-  { label: '16:9', value: 16 / 9 },
+  { label: '1:1', value: 1 }, { label: '16:9', value: 16 / 9 }, { label: '9:16', value: 9 / 16 },
+  { label: '4:3', value: 4 / 3 }, { label: '3:4', value: 3 / 4 }, { label: '3:2', value: 3 / 2 },
+  { label: '2:3', value: 2 / 3 }, { label: '5:4', value: 5 / 4 }, { label: '4:5', value: 4 / 5 },
+  { label: '21:9', value: 21 / 9 }, { label: '1:4', value: 1 / 4 }, { label: '4:1', value: 4 },
+  { label: '1:8', value: 1 / 8 }, { label: '8:1', value: 8 },
 ] as const
 
 const gcd = (a: number, b: number): number => b === 0 ? a : gcd(b, a % b)

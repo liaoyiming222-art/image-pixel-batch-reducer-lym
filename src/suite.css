@@ -222,3 +222,14 @@ fieldset.folder-card { min-width:0; margin-inline:0; }
 .folder-notice { position:relative; z-index:auto; bottom:auto; left:auto; width:100%; margin:16px 0 0; box-sizing:border-box; transform:none; animation:none; }
 @media(max-width:680px) { .image-toast { left:8px; right:8px; bottom:86px; } .inspector-toast.with-add-bar { bottom:140px; } .inspector-toast:not(.with-add-bar) { bottom:8px; } }
 @media(max-width:680px) { .folder-create-bar { left:8px; right:8px; bottom:8px; flex-wrap:wrap; padding:12px; }.folder-page { padding-bottom:180px; } }
+
+/* Four-tool suite, with the same centered navigation and card language. */
+.home-redesign .suite-cards { grid-template-columns:repeat(4,minmax(0,1fr)); gap:18px; }
+.home-redesign .suite-card { padding:23px; min-height:330px; }
+.home-redesign .suite-card h2 { font-size:19px; }
+.art-finder { background:#f2f3ff; color:#6869db; }
+.finder-art { width:160px; padding:14px; border:1px solid #dddff8; border-radius:12px; background:#ffffffdf; font-size:12px; box-shadow:0 8px 20px #6667c810; }
+.finder-art>div { display:flex; align-items:center; gap:9px; padding:7px 0; }.finder-art>div:last-child { margin-top:7px; padding-top:13px; border-top:1px solid #ededfa; color:#659c80; }.finder-art>div:last-child>svg:last-child { margin-left:auto; color:#6869db; }
+@media(min-width:681px) and (max-width:1200px) { .suite-nav { height:auto; padding:10px 24px; grid-template-columns:1fr auto; gap:10px; }.suite-nav-links { grid-column:1/-1; grid-row:2; justify-self:center; max-width:100%; overflow-x:auto; }.nav-local { display:none; } }
+@media(max-width:1050px) { .home-redesign .suite-cards { grid-template-columns:repeat(2,minmax(0,1fr)); }.home-redesign .suite-card { min-height:310px; } }
+@media(max-width:680px) { .home-redesign .suite-cards { grid-template-columns:1fr; }.suite-nav-links button:last-child { grid-column:1/-1; } }
