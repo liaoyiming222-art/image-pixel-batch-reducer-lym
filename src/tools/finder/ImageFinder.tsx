@@ -6,6 +6,7 @@ import { createArchive, entriesFromFiles, ImageReadFailure } from './files'
 import './finder.css'
 
 type ResultFilter = 'all' | 'found' | 'missing' | 'choose' | 'error'
+interface PictureDirectory { id: string; label: string; signature: string; files: ImageEntry[] }
 export function ImageFinder() {
   const [mode, setMode] = useState<'excel' | 'text'>('excel')
   const [text, setText] = useState('')
@@ -17,8 +18,9 @@ export function ImageFinder() {
   const [excelError, setExcelError] = useState('')
   const [rows, setRows] = useState<NameRow[]>([])
   const [duplicates, setDuplicates] = useState(0)
-  const [files, setFiles] = useState<ImageEntry[]>([])
-  const [folderName, setFolderName] = useState('')
+  const [directories, setDirectories] = useState<PictureDirectory[]>([])
+  const [pendingDirectory, setPendingDirectory] = useState<PictureDirectory | null>(null)
+  const files = useMemo(() => directories.flatMap(directory => directory.files), [directories])
   const [scanned, setScanned] = useState(0)
   const [results, setResults] = useState<MatchResult[] | null>(null)
   const [choices, setChoices] = useState<Record<string, string>>({})
@@ -51,6 +53,12 @@ export function ImageFinder() {
   }, [results, choices, readErrors])
 
   const resetResults = () => { setResults(null); setChoices({}); setExcluded(new Set()); setReadErrors({}); setFilter('all') }
+  const updateDirectories = (next: PictureDirectory[]) => {
+    setDirectories(next)
+    resetResults()
+    if (results) setResults(matchNames(rows, next.flatMap(directory => directory.files)))
+    setNotice(results ? '图片目录已更新，匹配结果已刷新，请重新核对下载选择。' : '图片目录已更新，可在所有已添加目录中查找。')
+  }
   const setNames = (names: string[]) => {
     const prepared = prepareNames(names)
     setRows(prepared.rows); setDuplicates(prepared.duplicates); resetResults()
@@ -80,24 +88,35 @@ export function ImageFinder() {
     catch { setNotice('无法读取剪贴板，请在文字框中按 Ctrl+V 粘贴。') }
   }
   const chooseFolder = () => {
-    if (operation.current) return
+    if (operation.current || pendingDirectory) return
     folderInput.current?.click()
   }
   const useFolderFiles = async (list: FileList) => {
     if (operation.current) return
     const all = Array.from(list); const entries: ImageEntry[] = []
+    if (!all.length || pendingDirectory) return
+    const name = all[0]?.webkitRelativePath.split('/')[0] || '所选文件夹'
+    let label = name; let suffix = 2
+    const usedLabels = new Set(directories.map(directory => directory.label.normalize('NFC').toLowerCase()))
+    while (usedLabels.has(label.normalize('NFC').toLowerCase())) label = `${name} (${suffix++})`
+    const source = { id: crypto.randomUUID(), label }
     operation.current = true; setScanning(true); setScanned(0)
     const token = ++scanToken.current
     try {
       for (let index = 0; index < all.length; index += 500) {
         await new Promise<void>(resolve => window.setTimeout(resolve, 0))
         if (token !== scanToken.current) return
-        entries.push(...entriesFromFiles(all.slice(index, index + 500)))
+        entries.push(...entriesFromFiles(all.slice(index, index + 500), source))
         setScanned(Math.min(index + 500, all.length))
       }
-      setFiles(entries); setFolderName(all[0]?.webkitRelativePath.split('/')[0] || '所选文件夹'); resetResults()
-      if (!entries.length) setNotice('所选目录中没有找到支持的图片。')
-    } catch { setNotice('无法建立图片清单，请重新选择目录。') }
+      if (!entries.length) { setNotice('所选目录中没有找到支持的图片，已添加目录保持不变。'); return }
+      // A directory upload does not expose the absolute path. Identical metadata is
+      // only a duplicate candidate, not proof that two shared directories are the same.
+      const signature = JSON.stringify(all.map(file => [file.webkitRelativePath || file.name, file.size, file.lastModified]).sort((a, b) => String(a[0]).localeCompare(String(b[0]))))
+      const directory = { ...source, signature, files: entries }
+      if (directories.some(item => item.signature === signature)) setPendingDirectory(directory)
+      else updateDirectories([...directories, directory])
+    } catch { setNotice('无法建立图片清单，请重新选择目录。已添加目录保持不变。') }
     finally { operation.current = false; setScanning(false) }
   }
   const find = () => {
@@ -154,11 +173,13 @@ export function ImageFinder() {
       {!!rows.length && <p className="finder-help">清单中有 <b>{rows.length}</b> 个图名{duplicates ? `，已合并 ${duplicates} 个重复项` : ''}。更换输入并提取后会替换当前清单。</p>}
     </section>
     <section className="finder-card">
-      <div className="finder-heading"><div><FolderOpen size={19} /><h2>图片目录</h2></div><button className="finder-button" disabled={busy} onClick={() => void chooseFolder()}><FolderOpen size={16} />{folderName ? '更换图片文件夹' : '选择图片文件夹'}</button></div>
+      <div className="finder-heading"><div><FolderOpen size={19} /><h2>图片目录{directories.length ? <small>{directories.length} 个目录 · {files.length} 张图片</small> : null}</h2></div><button className="finder-button" disabled={busy || !!pendingDirectory} onClick={() => void chooseFolder()}><FolderOpen size={16} />{directories.length ? '添加图片文件夹' : '选择图片文件夹'}</button></div>
       <p className="finder-directory-note"><Info size={16} /><span><strong>系统提示“上传”仅表示允许本页面读取文件。</strong>图片内容不会上传到网站服务器，也不会修改或删除原文件。</span></p>
       <input ref={folderInput} type="file" multiple hidden aria-label="共享图片文件夹" {...({ webkitdirectory: '', directory: '' } as Record<string, string>)} onChange={event => { if (event.target.files?.length) void useFolderFiles(event.target.files); event.target.value = '' }} />
-      <div className="finder-directory-guide"><p>复制文件夹路径后点击“选择图片文件夹”；若窗口已自动定位到目标目录，直接确认即可。</p></div>
-      <div className={`finder-source ${folderName ? 'connected' : ''}`}><FolderOpen size={22} /><div><strong>{scanning ? '正在扫描文件名…' : folderName || '尚未选择图片文件夹'}</strong><span>{scanning ? `已扫描 ${scanned} 个文件` : folderName ? `找到 ${files.length} 张图片 · 仅建立名称索引，打包时才读取图片内容` : '选择后将在这里显示文件夹名称和图片数量。'}</span></div>{scanning ? <button className="finder-button" onClick={() => { scanToken.current++; setNotice('已请求停止扫描。') }}>停止扫描</button> : folderName ? <CheckCircle2 size={20} /> : null}</div>
+      <div className="finder-directory-guide"><p>点击“{directories.length ? '添加图片文件夹' : '选择图片文件夹'}”，在弹出窗口底部的“文件夹”输入框中粘贴路径，再点击“上传”并确认授权。</p><p>可逐个添加多个目录，统一查找各目录及其子文件夹。同名目录以编号区分；目录变动后，请重新核对匹配结果。</p></div>
+      {directories.map(directory => <div className="finder-source connected" key={directory.id}><FolderOpen size={22} /><div><strong>{directory.label}</strong><span>找到 {directory.files.length} 张图片 · 仅建立名称索引，打包时才读取图片内容</span></div><CheckCircle2 size={20} /><button className="finder-button" aria-label={`移除目录 ${directory.label}`} disabled={busy || !!pendingDirectory} onClick={() => updateDirectories(directories.filter(item => item.id !== directory.id))}><Trash2 size={15} />移除</button></div>)}
+      {scanning ? <div className="finder-source" role="status"><Loader2 size={22} className="spin" /><div><strong>正在扫描文件名…</strong><span>已扫描 {scanned} 个文件</span></div><button className="finder-button" onClick={() => { scanToken.current++; setNotice('已请求停止扫描，已添加目录保持不变。') }}>停止扫描</button></div> : !directories.length && !pendingDirectory ? <div className="finder-source"><FolderOpen size={22} /><div><strong>尚未选择图片文件夹</strong><span>选择后将在这里显示文件夹名称和图片数量。</span></div></div> : null}
+      {pendingDirectory && <div className="finder-warning" role="region" aria-label="核对重复目录"><strong>这个目录可能已添加</strong><p>目录名称和文件清单与已添加目录相同。浏览器不会提供完整路径，若来自不同位置，可以仍然添加。</p><div className="finder-input-actions"><button className="finder-button" disabled={busy} onClick={() => setPendingDirectory(null)}>取消添加</button><button className="finder-button primary" disabled={busy} onClick={() => { updateDirectories([...directories, pendingDirectory]); setPendingDirectory(null) }}>仍然添加</button></div></div>}
     </section>
     <section className="finder-card finder-results">
       <div className="finder-heading"><div><ListChecks size={19} /><h2>匹配结果{rows.length ? <small>{rows.length} 个图名</small> : null}</h2></div><div className="finder-input-actions"><button className="finder-button" disabled={!rows.length || busy} onClick={() => { setRows([]); setDuplicates(0); resetResults() }}><Trash2 size={15} />清空清单</button><button className="finder-button primary" disabled={!rows.length || !files.length || busy} onClick={find}><Search size={16} />{results ? '重新查找' : '查找图片'}</button></div></div>

@@ -29,10 +29,10 @@ export async function scanDirectory(handle: ReadDirectoryHandle, onProgress: (co
   await walk(handle, ''); onProgress(count)
   return { files, issues }
 }
-export function entriesFromFiles(files: File[]) {
+export function entriesFromFiles(files: File[], source?: { id: string; label: string }) {
   return files.filter(file => isImageName(file.name)).map(file => {
     const path = file.webkitRelativePath?.split('/').slice(1).join('/') || file.name
-    return { id: path, name: file.name, path, read: async () => file }
+    return { id: source ? JSON.stringify([source.id, path]) : path, name: file.name, path: source ? `${source.label}/${path}` : path, read: async () => file }
   })
 }
 export class ImageReadFailure extends Error {

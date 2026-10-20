@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest'
 import JSZip from 'jszip'
 import { archivePath, detectColumn, matchNames, prepareNames, selectedFiles, type ImageEntry } from './model'
-import { createArchive, ImageReadFailure, scanDirectory, ScanCancelled, type ReadDirectoryHandle } from './files'
+import { createArchive, entriesFromFiles, ImageReadFailure, scanDirectory, ScanCancelled, type ReadDirectoryHandle } from './files'
 
 const entry = (path: string, bytes = [1, 2, 3]): ImageEntry => ({
   id: path, path, name: path.split('/').pop()!, read: vi.fn(async () => ({ arrayBuffer: async () => Uint8Array.from(bytes).buffer } as File)),
@@ -63,6 +63,26 @@ describe('shared-directory reading and archive', () => {
     const zip = await JSZip.loadAsync(buffer)
     expect(Array.from(await zip.file('甲/图片.png')!.async('uint8array'))).toEqual([4, 5])
     expect(Array.from(await zip.file('乙/图片.png')!.async('uint8array'))).toEqual([6, 7])
+  })
+  it('keeps source identities and archive roots distinct for identical relative paths', async () => {
+    const sourceFile = (byte: number) => {
+      const file = new File([], '产品图.png')
+      Object.defineProperty(file, 'webkitRelativePath', { value: '修图/原图/产品图.png' })
+      Object.defineProperty(file, 'arrayBuffer', { value: vi.fn(async () => Uint8Array.of(byte).buffer) })
+      return file
+    }
+    const first = sourceFile(10); const second = sourceFile(20)
+    const files = [...entriesFromFiles([first], { id: 'first', label: '修图' }), ...entriesFromFiles([second], { id: 'second', label: '修图 (2)' })]
+    expect(files[0].id).not.toBe(files[1].id)
+    expect(first.arrayBuffer).not.toHaveBeenCalled()
+    const matches = matchNames(names('产品图.png'), files)
+    expect(matches[0].matches).toHaveLength(2)
+    expect(selectedFiles(matches, {}, new Set())).toHaveLength(0)
+    const blob = await createArchive(files, vi.fn())
+    const buffer = await new Promise<ArrayBuffer>((resolve, reject) => { const reader = new FileReader(); reader.onload = () => resolve(reader.result as ArrayBuffer); reader.onerror = reject; reader.readAsArrayBuffer(blob) })
+    const zip = await JSZip.loadAsync(buffer)
+    expect(Array.from(await zip.file('修图/原图/产品图.png')!.async('uint8array'))).toEqual([10])
+    expect(Array.from(await zip.file('修图 (2)/原图/产品图.png')!.async('uint8array'))).toEqual([20])
   })
   it('blocks incomplete archives, reports the failing image, and succeeds after it is excluded', async () => {
     const good = entry('好图.png'); const bad = entry('失败.png')
