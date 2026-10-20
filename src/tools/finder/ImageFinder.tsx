@@ -14,6 +14,7 @@ export function ImageFinder() {
   const [column, setColumn] = useState(0)
   const [start, setStart] = useState(0)
   const [excelName, setExcelName] = useState('')
+  const [excelError, setExcelError] = useState('')
   const [rows, setRows] = useState<NameRow[]>([])
   const [duplicates, setDuplicates] = useState(0)
   const [files, setFiles] = useState<ImageEntry[]>([])
@@ -59,16 +60,19 @@ export function ImageFinder() {
   const extractSheet = (value: WorkbookSheet, col: number, from: number) => setNames(value.rows.slice(from).map(row => row[col] ?? ''))
   const uploadExcel = async (file: File) => {
     if (operation.current) return
-    if (!/\.xlsx$/i.test(file.name)) { setNotice('请上传 .xlsx 文件；旧版 .xls 请另存为 .xlsx，或复制图名后粘贴。'); return }
-    operation.current = true; setLoading(true)
+    if (!/\.xlsx$/i.test(file.name)) { setExcelError('请上传 .xlsx 文件；旧版 .xls 请另存为 .xlsx，或复制图名后粘贴。'); return }
+    operation.current = true; setLoading(true); setExcelError('')
     try {
-      const workbook = await readWorkbook(await file.arrayBuffer())
-      if (!workbook.length) throw new Error('表格没有可读取的工作表。')
+      let data: ArrayBuffer
+      try { data = await file.arrayBuffer() }
+      catch { throw new Error('无法读取所选文件，请确认文件仍可访问后重新选择。') }
+      const workbook = await readWorkbook(data)
+      if (!workbook.some(item => item.rows.some(row => row.some(value => value.trim())))) throw new Error('表格没有可读取的文字内容，请选择其他表格或粘贴图名。')
       const first = workbook.findIndex(item => detectColumn(item.rows).start > 0)
-      const index = first < 0 ? 0 : first; const detected = detectColumn(workbook[index].rows)
+      const index = first < 0 ? workbook.findIndex(item => item.rows.some(row => row.some(value => value.trim()))) : first; const detected = detectColumn(workbook[index].rows)
       setSheets(workbook); setSheetIndex(index); setColumn(detected.column); setStart(detected.start); setExcelName(file.name)
       extractSheet(workbook[index], detected.column, detected.start)
-    } catch (error) { setNotice(error instanceof Error ? error.message : '读取表格失败，请重试。') }
+    } catch (error) { setExcelError(`${error instanceof Error ? error.message : '读取表格失败，请重试。'}${rows.length ? ' 当前图名清单已保留。' : ''}`) }
     finally { operation.current = false; setLoading(false) }
   }
   const paste = async () => {
@@ -139,6 +143,7 @@ export function ImageFinder() {
           <div className="finder-file-icon"><FileSpreadsheet size={25} /></div><div><strong>{loading ? '正在读取表格…' : excelName || '选择或拖入 Excel 表格'}</strong><p>读取 .xlsx 中的图名文字，自动识别“图名称”列。</p></div>
           <button className="finder-button primary" disabled={busy} onClick={() => excelInput.current?.click()}>{loading ? <Loader2 size={16} className="spin" /> : <FileSpreadsheet size={16} />}{excelName ? '更换表格' : '选择表格'}</button>
         </div>
+        {excelError && <p className="finder-error" role="alert">{excelError}</p>}
         {sheet && <div className="finder-columns"><label>工作表<select aria-label="工作表" value={sheetIndex} disabled={busy} onChange={event => { const index = +event.target.value; const detected = detectColumn(sheets[index].rows); setSheetIndex(index); setColumn(detected.column); setStart(detected.start); extractSheet(sheets[index], detected.column, detected.start) }}>{sheets.map((item, index) => <option key={index} value={index}>{item.name}</option>)}</select></label>
           <label>图名所在列<select aria-label="图名所在列" value={column} disabled={busy} onChange={event => { setColumn(+event.target.value); extractSheet(sheet, +event.target.value, start) }}>{Array.from({ length: columnCount }, (_, index) => <option key={index} value={index}>{columnLabel(index)} 列{sheet.rows[Math.max(0, start - 1)]?.[index] ? ` · ${sheet.rows[Math.max(0, start - 1)][index].slice(0, 28)}` : ''}</option>)}</select></label>
           <label>从第几行提取<input aria-label="从第几行提取" type="number" min="1" max={Math.max(1, sheet.rows.length)} value={start + 1} disabled={busy} onChange={event => { const value = Math.max(0, (+event.target.value || 1) - 1); setStart(value); extractSheet(sheet, column, value) }} /></label></div>}

@@ -1,3 +1,5 @@
+import readExcelFile from 'read-excel-file/browser'
+
 export interface NameRow { id: string; name: string }
 export interface ImageEntry { id: string; name: string; path: string; read: () => Promise<File> }
 export interface WorkbookSheet { name: string; rows: string[][] }
@@ -72,7 +74,6 @@ export function detectColumn(rows: string[][]) {
   return { column: 0, start: 0 }
 }
 export async function readWorkbook(data: ArrayBuffer): Promise<WorkbookSheet[]> {
-  const { default: readExcelFile } = await import('read-excel-file/browser')
   try {
     const sheets = await readExcelFile(data, { parseNumber: value => value, trim: false })
     return sheets.map(sheet => ({ name: sheet.sheet, rows: sheet.data.map(row => row.map(value =>
