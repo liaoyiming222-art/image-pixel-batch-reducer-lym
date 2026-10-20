@@ -1,3 +1,6 @@
+import {onRequestGet as timeGet,onRequestPut as timePut} from '../functions/api/admin/time-savings'
+import {readTimeSavings} from '../functions/lib/time-savings'
+import {calculateSavings,defaultTimeConfigs} from '../shared/time-savings'
 import {readLiveStats} from '../functions/lib/live'
 // @vitest-environment node
 import { createRequire } from 'node:module'
@@ -19,7 +22,7 @@ const event=(name='page_view',tool='app',props={},overrides={})=>({id:user(),use
 const request=(path:string,body:unknown,cookie='')=>new Request(host+path,{method:'POST',headers:{Origin:host,'Content-Type':'application/json',Cookie:cookie},body:JSON.stringify(body)})
 beforeEach(()=>{
   vi.useFakeTimers();vi.setSystemTime(now)
-  sqlite=new DatabaseSync(':memory:');sqlite.exec(readFileSync('migrations/0001_analytics.sql','utf8'));sqlite.exec(readFileSync('migrations/0002_multisite.sql','utf8'))
+  sqlite=new DatabaseSync(':memory:');sqlite.exec(readFileSync('migrations/0001_analytics.sql','utf8'));sqlite.exec(readFileSync('migrations/0002_multisite.sql','utf8'));sqlite.exec(readFileSync('migrations/0003_time_savings.sql','utf8'))
   db={prepare(sql:string){let args:unknown[]=[];const statement={bind(...next:unknown[]){args=next;return statement},async run(){const result=sqlite.prepare(sql).run(...args);return {success:true,meta:{changes:Number(result.changes)}}},async all(){return {results:sqlite.prepare(sql).all(...args)}},async first(){return sqlite.prepare(sql).get(...args)||null}};return statement},async batch(items){sqlite.exec('BEGIN');try{const values=[];for(const item of items)values.push(await item.run());sqlite.exec('COMMIT');return values}catch(e){sqlite.exec('ROLLBACK');throw e}}} as Database
   env={DB:db,ADMIN_PASSWORD:'a-test-password-only',AUTH_SECRET:'test-signing-key-longer-than-32-characters'}
 })
@@ -183,4 +186,35 @@ it('新建目录只汇总实际成功的主子目录，去重、日期和站点�
  expect(result.lifetime.folders).toBe(7);expect(result.period.folders).toBe(1);expect(result.monthly[0].folders).toBe(7)
  expect(result.series).toHaveLength(1);expect(result.series[0].folders).toBe(1)
  expect((await readLiveStats(db,'2026-10-01','2026-10-31','pixelfloweverybody')).lifetime.folders).toBe(0)
+})
+
+describe('节时数据和参数接口',()=>{
+ async function cookie(){const r=await login({request:request('/api/admin/login',{password:'a-test-password-only'}),env});return r.headers.get('set-cookie')!.split(';')[0]}
+ const putRequest=(body:unknown,session:string,site='pixelflow-image-tools',origin=host)=>new Request(host+'/api/admin/time-savings?site='+site,{method:'PUT',headers:{Origin:origin,'Content-Type':'application/json',Cookie:session},body:JSON.stringify(body)})
+ it('只有明确的节时事件计入，四类工具独立、重试去重、跨月跨站不混算',async()=>{
+  for(const [tool,count] of [['compress',2],['inspect',3],['folders',1],['finder',4]] as const){const e=event('time_saving_completed',tool,{count},{task:user()});expect((await ingest({request:request('/api/events',{events:[e,e]}),env})).status).toBe(200)}
+  await ingest({request:request('/api/events',{events:[event('inspection_finished','inspect',{count:99},{task:user()})]}),env})
+  const at=Date.parse('2026-09-30T15:59:00Z')
+  sqlite.prepare('INSERT INTO events(id,user_id,session_id,task_id,name,tool,occurred_at,received_at,day,version,props,effective,site_id) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)').run(user(),user(),user(),user(),'time_saving_completed','finder',at,at,'2026-09-30','analytics-v1','{"count":2}',0,'pixelflow-image-tools')
+  const result=await readTimeSavings(db,'pixelflow-image-tools','2026-10-01','2026-10-31')
+  expect(result.usage.period).toEqual({compress:2,inspect:3,folders:1,finder:4})
+  expect(result.usage.lifetime.finder).toBe(6);expect(calculateSavings(result.usage.period,result.configs).savedSeconds).toBe(811)
+  expect(result.usage.monthly.map(m=>m.month)).toEqual(['2026-10','2026-09'])
+  expect((await readTimeSavings(db,'pixelfloweverybody','2026-10-01','2026-10-31')).firstAt).toBeNull()
+  for(const e of [event('time_saving_completed','app',{count:1},{task:user()}),event('time_saving_completed','finder',{count:0},{task:user()}),event('time_saving_completed','finder',{count:1}),event('inspection_finished','finder',{count:1},{task:user()})])expect(validateEvent(e,now)).toBeNull()
+ })
+ it('参数必须登录且同源，保存跨请求生效，站点隔离，旧编辑版本不能覆盖',async()=>{
+  expect((await timeGet({request:new Request(host+'/api/admin/time-savings'),env})).status).toBe(401)
+  expect((await timePut({request:putRequest({configs:defaultTimeConfigs(),revision:0},''),env})).status).toBe(401)
+  const session=await cookie(),configs=defaultTimeConfigs();configs.compress.automated=1.5
+  expect((await timePut({request:putRequest({configs,revision:0},session,'pixelflow-image-tools','https://elsewhere.example'),env})).status).toBe(403)
+  const saved=await timePut({request:putRequest({configs,revision:0},session),env});expect(saved.status).toBe(200);expect(await saved.json()).toMatchObject({revision:1,configs})
+  const read=await timeGet({request:new Request(host+'/api/admin/time-savings',{headers:{Cookie:session}}),env});expect(await read.json()).toMatchObject({revision:1,configs})
+  expect((await timePut({request:putRequest({configs,revision:0},session),env})).status).toBe(409)
+  expect((await timePut({request:putRequest({configs:{...configs,finder:{manual:1.01,automated:1}},revision:1},session),env})).status).toBe(400)
+  expect((await timePut({request:putRequest({configs,revision:1},session),env})).status).toBe(200)
+  expect((await readTimeSavings(db,'pixelfloweverybody','2026-10-01','2026-10-31')).revision).toBe(0)
+  expect((await timeGet({request:new Request(host+'/api/admin/time-savings?start=2026-02-31',{headers:{Cookie:session}}),env})).status).toBe(400)
+  expect((await timeGet({request:new Request(host+'/api/admin/time-savings?site=unknown',{headers:{Cookie:session}}),env})).status).toBe(404)
+ })
 })

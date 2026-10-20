@@ -10,7 +10,7 @@ import type { ImageTask } from '../../types'
 import { aspectRatio, MB, outputName, ratioName } from '../../utils'
 import { filesFromDrop } from '../../fileEntries'
 import './inspector.css'
-import { newTaskId, track, trackInspection } from '../../analytics'
+import { newTaskId, track, trackInspection, trackInspectionValue, trackTimeSaving } from '../../analytics'
 
 export function ImageInspector() {
   const { tasks, setTasks, tasksRef, importRegistry, inspectorMode, setInspectorMode, limitMB, setLimitMB, edgeEnabled, edgeLimit, setEdgeLimit } = useImageWorkspace()
@@ -24,7 +24,7 @@ export function ImageInspector() {
   const folderInputRef = useRef<HTMLInputElement>(null)
   const orderRef = useRef(tasks.length)
   const batchRef = useRef({ id: '', started: 0, planned: 0, success: 0, skipped: 0, failed: 0, qualified: 0 })
-  useEffect(() => { trackInspection(tasks.map(task => task.id)) }, [tasks])
+  useEffect(() => { trackInspection(tasks.map(task => task.id)); trackInspectionValue(tasks.map(task => task.id)) }, [tasks])
   const records = useMemo<ImageRecord[]>(() => tasks.map((task, index) => ({
     id: task.id, file: task.file, signature: fileSignature(task.file), order: index, name: task.name,
     width: task.width, height: task.height, size: task.size,
@@ -173,6 +173,7 @@ export function ImageInspector() {
   const finishBatch = () => {
     const b = batchRef.current
     track('image_process_finished', 'inspect', { count: b.planned, success: b.success, skipped: b.skipped, failed: b.failed, qualified: b.qualified, pending: b.planned - b.success - b.skipped - b.failed, duration: Math.round(performance.now() - b.started), mode: inspectorMode }, b.id)
+    trackTimeSaving('compress', b.success, b.id)
   }
 
   return <div className="inspector-page">{notice && <div className={`alert image-toast inspector-toast ${records.length ? 'with-add-bar' : ''}`} role="status">{notice}</div>}

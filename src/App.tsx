@@ -11,7 +11,7 @@ import { ImageInspector } from './tools/inspector/ImageInspector'
 import { FolderCreator } from './tools/folder/FolderCreator'
 import { ImageFinder } from './tools/finder/ImageFinder'
 import './suite.css'
-import { newTaskId, track, trackInspection } from './analytics'
+import { newTaskId, track, trackInspection, trackTimeSaving } from './analytics'
 
 const labels: Record<TaskStatus, string> = {
   pending: '待处理', processing: '处理中', done: '处理完成', skipped: '无需处理', error: '处理失败',
@@ -158,6 +158,7 @@ function CompressionTool() {
     const worker = async () => { while (cursor < queue.length) { const task = queue[cursor++]; const result = await processOne(task); counts.success += result.success; counts.skipped += result.skipped; counts.failed += result.failed; counts.qualified += result.qualified } }
     await Promise.all(Array.from({ length: Math.min(2, queue.length) }, worker))
     track('image_process_finished', 'compress', { ...counts, pending: 0, count: queue.length, duration: Math.round(performance.now() - started), mode: compressionMode }, taskId)
+    trackTimeSaving('compress', counts.success, taskId)
     setBusy(false)
   }
 
@@ -297,7 +298,7 @@ function SuiteHome({ onOpen }: { onOpen: (tool: ToolKey) => void }) {
 
 export default function App() {
   const [activeTool, setActiveTool] = useState<ToolKey>('home')
-  const openTool = (tool: ToolKey) => { if (tool !== activeTool && tool !== 'home' && tool !== 'finder') track('tool_open', tool); setActiveTool(tool) }
+  const openTool = (tool: ToolKey) => { if (tool !== activeTool && tool !== 'home') track('tool_open', tool); setActiveTool(tool) }
   return <ImageWorkspaceProvider><div className="suite-shell"><nav className="suite-nav"><button className="suite-brand" onClick={() => openTool('home')}><span><ImagePlus size={19} /></span><b>PixelFlow</b><small>本地效率工具</small></button><div className="suite-nav-links"><button className={activeTool === 'home' ? 'active' : ''} onClick={() => openTool('home')}><Home size={15} />首页</button>{tools.map(tool => <button key={tool.key} className={activeTool === tool.key ? 'active' : ''} onClick={() => openTool(tool.key)}><tool.icon size={15} />{tool.title}</button>)}</div><div className="nav-local"><span/>本地运行</div></nav>
     {activeTool === 'home' && <SuiteHome onOpen={openTool} />}
     {activeTool === 'compress' && <CompressionTool />}

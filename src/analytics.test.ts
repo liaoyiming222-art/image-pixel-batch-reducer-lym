@@ -61,3 +61,13 @@ it('追加图片只增加新增数量，清空后新图片编号可以再次计�
  const events=JSON.parse(String(vi.mocked(fetch).mock.calls[0][1]?.body)).events
  expect(events.map((e:{props:{count:number}})=>e.props.count)).toEqual([100,20,100])
 })
+
+it('节时用量独立于服务量，去重、重新清单和零失败计数正确',async()=>{
+ const {createTimeSavingCounter,trackInspectionValue,trackTimeSaving}=await import('./analytics')
+ trackInspectionValue(['a','b']);trackInspectionValue(['a','b']);trackInspectionValue(['a','b','c'])
+ const finder=createTimeSavingCounter('finder');finder.record(['file1','file1']);finder.record(['file1']);finder.reset();finder.record(['file1'])
+ trackTimeSaving('compress',0);trackTimeSaving('folders',-1)
+ await vi.advanceTimersByTimeAsync(300)
+ const events=JSON.parse(String(vi.mocked(fetch).mock.calls[0][1]?.body)).events
+ expect(events.map((e:{name:string;tool:string;props:{count:number}})=>[e.name,e.tool,e.props.count])).toEqual([['time_saving_completed','inspect',2],['time_saving_completed','inspect',1],['time_saving_completed','finder',1],['time_saving_completed','finder',1]])
+})

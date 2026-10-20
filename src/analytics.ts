@@ -1,4 +1,5 @@
-type Tool = 'app' | 'compress' | 'inspect' | 'folders'
+import type { SavingTool } from '../shared/time-savings'
+type Tool = 'app' | SavingTool
 type Props = Record<string, number | string | boolean>
 interface Event { site?:string; id: string; user: string; session: string; task: string; name: string; tool: Tool; at: number; version: string; props: Props }
 const USER_KEY = 'pixelflow.analytics.user.v1'
@@ -72,3 +73,13 @@ export function trackInspection(ids: string[], tool: 'compress' | 'inspect' = 'i
   fresh.forEach(id => inspected.add(id))
   if (fresh.length) track('inspection_finished', tool, { count: fresh.length }, newTaskId())
 }
+export function trackTimeSaving(tool: SavingTool, count: number, task: string = newTaskId()) {
+  if (Number.isSafeInteger(count) && count > 0) track('time_saving_completed', tool, { count }, task)
+}
+// These identifiers stay in browser memory; only an anonymous quantity is sent.
+export function createTimeSavingCounter(tool: SavingTool) {
+  const seen = new Set<string>()
+  return { record(ids: string[]) { const fresh = [...new Set(ids)].filter(id => !seen.has(id));fresh.forEach(id => seen.add(id));trackTimeSaving(tool,fresh.length) }, reset() { seen.clear() } }
+}
+const inspectionValue = createTimeSavingCounter('inspect')
+export const trackInspectionValue = (ids: string[]) => inspectionValue.record(ids)

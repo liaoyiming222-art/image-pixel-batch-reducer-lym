@@ -1,7 +1,7 @@
 import { useMemo, useRef, useState } from 'react'
 import { ClipboardPaste, Play, Trash2 } from 'lucide-react'
 import { useTransientNotice } from '../../useTransientNotice'
-import { newTaskId, track } from '../../analytics'
+import { newTaskId, track, trackTimeSaving } from '../../analytics'
 import { createDirectories, type DirectoryHandle } from './createDirectories'
 import { aigcFolderName, creationDate } from './naming'
 import { splitTable } from './parser'
@@ -69,7 +69,9 @@ export function AigcFolderCreator() {
     const id = newTaskId(); const started = performance.now()
     track('folder_create_started', 'folders', { count: jobs.length, mode: 'aigc' }, id)
     try {
-      const counts = await createDirectories(handle, jobs, true, (rowId, status) => updateRow(rowId, { status }))
+      let completed = 0
+      const counts = await createDirectories(handle, jobs, true, (rowId, status) => { if (status === '创建成功') completed++; updateRow(rowId, { status }) })
+      trackTimeSaving('folders', completed, id)
       track('folder_create_finished', 'folders', { ...counts, mode: 'aigc', duration: Math.round(performance.now() - started) }, id)
       setNotice(`处理完成：创建 ${counts.created} 个主目录、${counts.children} 个子目录，补齐 ${counts.completedExisting} 个，跳过 ${counts.existing + counts.duplicate} 个，失败 ${counts.failed} 个。`)
     } finally { creationLock.current = false; setWorking(false) }

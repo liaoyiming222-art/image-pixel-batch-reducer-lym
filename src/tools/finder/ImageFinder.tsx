@@ -1,9 +1,10 @@
-import { useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Archive, CheckCircle2, ClipboardPaste, FileSpreadsheet, FolderOpen, ListChecks, Loader2, Search, Trash2, Info } from 'lucide-react'
 import { useTransientNotice } from '../../useTransientNotice'
 import { columnLabel, detectColumn, matchNames, prepareNames, readWorkbook, resolvedFile, selectedFiles, type ImageEntry, type MatchResult, type NameRow, type WorkbookSheet } from './model'
 import { createArchive, entriesFromFiles, ImageReadFailure } from './files'
 import './finder.css'
+import { createTimeSavingCounter } from '../../analytics'
 
 type ResultFilter = 'all' | 'found' | 'missing' | 'choose' | 'error'
 interface PictureDirectory { id: string; label: string; signature: string; files: ImageEntry[] }
@@ -35,6 +36,8 @@ export function ImageFinder() {
   const excelInput = useRef<HTMLInputElement>(null)
   const folderInput = useRef<HTMLInputElement>(null)
   const scanToken = useRef(0)
+  const savingCounter = useRef(createTimeSavingCounter('finder'))
+  useEffect(() => { savingCounter.current.record((results ?? []).flatMap(result => { const file=resolvedFile(result,choices[result.row.id]);return file?[file.id]:[] })) },[results,choices])
   const operation = useRef(false)
   const busy = loading || scanning || packing
   const sheet = sheets[sheetIndex]
@@ -60,6 +63,7 @@ export function ImageFinder() {
     setNotice(results ? '图片目录已更新，匹配结果已刷新，请重新核对下载选择。' : '图片目录已更新，可在所有已添加目录中查找。')
   }
   const setNames = (names: string[]) => {
+    savingCounter.current.reset()
     const prepared = prepareNames(names)
     setRows(prepared.rows); setDuplicates(prepared.duplicates); resetResults()
     if (prepared.duplicates) setNotice(`已合并 ${prepared.duplicates} 个重复图名，保留 ${prepared.rows.length} 个。`)
@@ -182,7 +186,7 @@ export function ImageFinder() {
       {pendingDirectory && <div className="finder-warning" role="region" aria-label="核对重复目录"><strong>这个目录可能已添加</strong><p>目录名称和文件清单与已添加目录相同。浏览器不会提供完整路径，若来自不同位置，可以仍然添加。</p><div className="finder-input-actions"><button className="finder-button" disabled={busy} onClick={() => setPendingDirectory(null)}>取消添加</button><button className="finder-button primary" disabled={busy} onClick={() => { updateDirectories([...directories, pendingDirectory]); setPendingDirectory(null) }}>仍然添加</button></div></div>}
     </section>
     <section className="finder-card finder-results">
-      <div className="finder-heading"><div><ListChecks size={19} /><h2>匹配结果{rows.length ? <small>{rows.length} 个图名</small> : null}</h2></div><div className="finder-input-actions"><button className="finder-button" disabled={!rows.length || busy} onClick={() => { setRows([]); setDuplicates(0); resetResults() }}><Trash2 size={15} />清空清单</button><button className="finder-button primary" disabled={!rows.length || !files.length || busy} onClick={find}><Search size={16} />{results ? '重新查找' : '查找图片'}</button></div></div>
+      <div className="finder-heading"><div><ListChecks size={19} /><h2>匹配结果{rows.length ? <small>{rows.length} 个图名</small> : null}</h2></div><div className="finder-input-actions"><button className="finder-button" disabled={!rows.length || busy} onClick={() => { setRows([]); savingCounter.current.reset(); setDuplicates(0); resetResults() }}><Trash2 size={15} />清空清单</button><button className="finder-button primary" disabled={!rows.length || !files.length || busy} onClick={find}><Search size={16} />{results ? '重新查找' : '查找图片'}</button></div></div>
       {results && <div className="finder-filters" aria-label="筛选匹配结果">{([['all', '全部', rows.length], ['found', '已找到', counts.found], ['missing', '未找到', counts.missing], ['choose', '待选择', counts.choose], ['error', '读取失败', counts.error]] as const).filter(([key, , count]) => key !== 'error' || count > 0).map(([key, label, count]) => <button key={key} className={filter === key ? 'active' : ''} onClick={() => setFilter(key)}>{label}<b>{count}</b></button>)}</div>}
       {!rows.length ? <div className="finder-empty"><Search size={30} /><strong>从一份图名清单开始</strong><p>上传表格或粘贴文字，再选择图片目录。</p></div> : <>
         <p className="finder-help">{results ? '核对文件名和相对路径。相似名称仅供选择，不会自动加入下载。' : '图名可直接修改；准备好清单与目录后，点击“查找图片”。'}</p>

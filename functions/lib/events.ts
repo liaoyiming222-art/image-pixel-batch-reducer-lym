@@ -2,7 +2,7 @@ const numeric = ['count', 'added', 'duplicate', 'invalid', 'failed', 'success', 
 const allowed: Record<string, string[]> = {
   page_view: [], tool_open: [], image_import_finished: ['added', 'duplicate', 'invalid', 'failed'],
   image_process_started: ['count', 'mode'], image_process_finished: ['count', 'success', 'skipped', 'failed', 'qualified', 'pending', 'duration', 'mode'],
-  inspection_finished: ['count'], output_action: ['kind', 'count', 'outputs'],
+  inspection_finished: ['count'], time_saving_completed: ['count'], output_action: ['kind', 'count', 'outputs'],
   folder_create_started: ['count', 'mode'], folder_create_finished: ['count', 'created', 'children', 'completedExisting', 'existing', 'duplicate', 'failed', 'duration', 'mode'],
 }
 const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
@@ -12,10 +12,11 @@ export function validateEvent(input: unknown, now = Date.now()): Event | null {
   const e = input as Event
   if (['id','user','session','task','name','tool','version'].some(key => typeof (e as unknown as Record<string,unknown>)[key] !== 'string')) return null
   if (!uuid.test(e.id) || !uuid.test(e.user) || !uuid.test(e.session) || (e.task !== '' && !uuid.test(e.task))) return null
-  if (!Object.hasOwn(allowed, e.name) || !['app', 'compress', 'inspect', 'folders'].includes(e.tool) || e.version !== 'analytics-v1') return null
+  if (!Object.hasOwn(allowed, e.name) || !['app', 'compress', 'inspect', 'folders', 'finder'].includes(e.tool) || e.version !== 'analytics-v1') return null
   if(e.site!==undefined&&(typeof e.site!=='string'||!/^[a-z0-9-]{1,64}$/.test(e.site)))return null
   if (Object.keys(e).some(key => !['site','id','user','session','task','name','tool','at','version','props'].includes(key))) return null
   if (e.name === 'tool_open' && e.tool === 'app') return null
+  if ((e.tool === 'finder' && !['tool_open','time_saving_completed'].includes(e.name)) || (e.name === 'time_saving_completed' && (e.tool === 'app' || !uuid.test(e.task)))) return null
   if (e.name === 'output_action' && !['compress','inspect'].includes(e.tool)) return null
   if (!Number.isInteger(e.at) || e.at > now + 5 * 60000 || e.at < now - 48 * 3600000) return null
   if ((e.name === 'page_view' && e.tool !== 'app') || (e.name.startsWith('folder_') && e.tool !== 'folders') || (e.name === 'inspection_finished' && !['compress','inspect'].includes(e.tool)) || (e.name.startsWith('image_') && !['compress', 'inspect'].includes(e.tool))) return null
@@ -28,7 +29,7 @@ export function validateEvent(input: unknown, now = Date.now()): Event | null {
   }
   const required = allowed[e.name].filter(key => key !== 'mode')
   if (required.some(key => !Object.hasOwn(e.props, key))) return null
-  if (['image_process_started','folder_create_started','inspection_finished','output_action'].includes(e.name) && Number(e.props.count) <= 0) return null
+  if (['image_process_started','folder_create_started','inspection_finished','output_action','time_saving_completed'].includes(e.name) && Number(e.props.count) <= 0) return null
   if (e.name === 'output_action' && Number(e.props.outputs) <= 0) return null
   if (e.name.endsWith('_started') || e.name === 'image_process_finished' || e.name === 'folder_create_finished') { if (!uuid.test(e.task)) return null }
   if (e.name === 'image_process_finished' && Number(e.props.success) + Number(e.props.skipped) + Number(e.props.failed) + Number(e.props.pending) !== e.props.count) return null
@@ -36,7 +37,7 @@ export function validateEvent(input: unknown, now = Date.now()): Event | null {
   return e
 }
 export function effective(e: Event) {
-  return (e.name === 'inspection_finished' && Number(e.props.count) > 0) || (e.name === 'output_action' && e.tool === 'compress' && Number(e.props.count) > 0) || (e.name === 'folder_create_finished' && Number(e.props.created) + Number(e.props.children) > 0) ? 1 : 0
+  return (['inspection_finished','time_saving_completed'].includes(e.name) && Number(e.props.count) > 0) || (e.name === 'output_action' && e.tool === 'compress' && Number(e.props.count) > 0) || (e.name === 'folder_create_finished' && Number(e.props.created) + Number(e.props.children) > 0) ? 1 : 0
 }
 export function metrics(e: Pick<Event, 'name' | 'props'>): Record<string, number> {
   const p = e.props; const n = (key: string) => Number(p[key] || 0)
