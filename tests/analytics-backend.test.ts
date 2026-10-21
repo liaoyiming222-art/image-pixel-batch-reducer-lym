@@ -199,7 +199,7 @@ describe('节时数据和参数接口',()=>{
   const at=Date.parse('2026-09-30T15:59:00Z')
   sqlite.prepare('INSERT INTO events(id,user_id,session_id,task_id,name,tool,occurred_at,received_at,day,version,props,effective,site_id) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)').run(user(),user(),user(),user(),'time_saving_completed','finder',at,at,'2026-09-30','analytics-v1','{"count":2}',0,'pixelflow-image-tools')
   const result=await readTimeSavings(db,'pixelflow-image-tools','2026-10-01','2026-10-31')
-  expect(result.usage.period).toEqual({compress:2,inspect:102,folders:1,finder:4})
+  expect(result.usage.period).toMatchObject({compress:2,inspect:102,folders:1,finder:4,compression:{detected:0,estimated:0}})
   expect(result.usage.lifetime.finder).toBe(6);expect(calculateSavings(result.usage.period,result.configs).savedSeconds).toBe(7543)
   expect(result.usage.monthly.map(m=>m.month)).toEqual(['2026-10','2026-09'])
   expect((await readTimeSavings(db,'pixelfloweverybody','2026-10-01','2026-10-31')).firstAt).toBeNull()
@@ -219,10 +219,59 @@ describe('节时数据和参数接口',()=>{
   expect((await timeGet({request:new Request(host+'/api/admin/time-savings?start=2026-02-31',{headers:{Cookie:session}}),env})).status).toBe(400)
   expect((await timeGet({request:new Request(host+'/api/admin/time-savings?site=unknown',{headers:{Cookie:session}}),env})).status).toBe(404)
  })
+ it('旧页面提交四项参数时不会覆盖已保存的检测参数',async()=>{
+  const session=await cookie(),configs=defaultTimeConfigs();configs.compressionDetection={manual:3,automated:0.5}
+  expect((await timePut({request:putRequest({configs,revision:0},session),env})).status).toBe(200)
+  delete configs.compressionDetection;configs.compress.automated=4
+  expect((await timePut({request:putRequest({configs,revision:1},session),env})).status).toBe(200)
+  const result=await readTimeSavings(db,'pixelflow-image-tools','2026-10-01','2026-10-31')
+  expect(result.configs.compressionDetection).toEqual({manual:3,automated:0.5})
+  expect(result.configs.compress.automated).toBe(4)
+ })
 })
 
 describe('历史节时回溯与匿名用户',()=>{
- it('同会话同日的新旧来源不重复相加，不以服务图片或失败目录冒充有效用量',async()=>{
+ it('同一批100张中60张成功40张无需压缩，重试不增加数量，三个贡献合计1890秒',async()=>{
+  const common={user:user(),session:user(),task:user()}
+  const entries=[event('inspection_finished','compress',{count:100},common),event('image_process_finished','compress',{count:100,success:60,skipped:40,failed:0,qualified:60,pending:0,duration:10},common),event('time_saving_completed','compress',{count:60},common)]
+  for(const e of [...entries,...entries])expect((await ingest({request:request('/api/events',{events:[e]}),env})).status).toBe(200)
+  const result=await readTimeSavings(db,'pixelflow-image-tools','2026-10-01','2026-10-31')
+  expect(result.usage.lifetime).toMatchObject({compress:60,compression:{detected:100,estimated:0}})
+  expect(calculateSavings(result.usage.lifetime,result.configs).savedSeconds).toBe(1890)
+ })
+ it('只有100张服务记录时全量按最长方案补估，新旧压缩事件按任务去重而独立任务仍累计',async()=>{
+  const common={user:user(),session:user()}
+  await ingest({request:request('/api/events',{events:[event('inspection_finished','compress',{count:100},{...common,task:user()})]}),env})
+  const before=await readTimeSavings(db,'pixelflow-image-tools','2026-10-01','2026-10-31')
+  expect(before.usage.lifetime.compression).toEqual({detected:100,estimated:100})
+  expect(calculateSavings(before.usage.lifetime,before.configs).savedSeconds).toBe(2970)
+  for(const success of [20,30]){
+   const task=user(),entries=[event('image_process_finished','compress',{count:success,success,skipped:0,failed:0,qualified:success,pending:0,duration:10},{...common,task}),event('time_saving_completed','compress',{count:success},{...common,task})]
+   await ingest({request:request('/api/events',{events:entries}),env})
+  }
+  const after=await readTimeSavings(db,'pixelflow-image-tools','2026-10-01','2026-10-31')
+  expect(after.usage.lifetime).toMatchObject({compress:50,compression:{detected:100,estimated:50}})
+  expect(calculateSavings(after.usage.lifetime,after.configs).savedSeconds).toBe(2970)
+ })
+ it('跨午夜与会话的处理结果替换补估，不虚增服务量，月份与累计可对账，失败只保留检测价值',async()=>{
+  const uid=user(),sid=user(),task=user(),insert=(name:string,tool:string,props:object,at:number)=>sqlite.prepare('INSERT INTO events(id,user_id,session_id,task_id,name,tool,occurred_at,received_at,day,version,props,effective,site_id) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)').run(user(),uid,name==='inspection_finished'?sid:user(),task,name,tool,at,at,new Date(at+8*3600000).toISOString().slice(0,10),'analytics-v1',JSON.stringify(props),1,'pixelflow-image-tools')
+  insert('inspection_finished','compress',{count:100},Date.parse('2026-09-30T15:59:00Z'))
+  insert('image_process_finished','compress',{count:100,success:60,skipped:30,failed:10,pending:0},Date.parse('2026-09-30T16:01:00Z'))
+  const result=await readTimeSavings(db,'pixelflow-image-tools','2026-10-01','2026-10-31')
+  expect(result.usage.lifetime).toMatchObject({compress:60,compression:{detected:100,estimated:0}})
+  expect(result.usage.period).toMatchObject({compress:60,compression:{detected:0,estimated:0}})
+  expect(calculateSavings(result.usage.period,result.configs).savedSeconds).toBe(1620)
+  expect(result.usage.monthly.reduce((sum,m)=>sum+calculateSavings(m.counts,result.configs).savedSeconds,0)).toBe(1890)
+  expect(calculateSavings(result.usage.lifetime,result.configs).savedSeconds).toBe(1890)
+ })
+ it('旧版已保存参数自动补入检测初值，保留原先自定义压缩参数与修订号',async()=>{
+  const configs=defaultTimeConfigs();delete configs.compressionDetection;configs.compress.automated=4.2
+  sqlite.prepare('INSERT INTO time_saving_settings(site_id,configs,revision,updated_at) VALUES(?,?,?,?)').run('pixelflow-image-tools',JSON.stringify(configs),2,now)
+  const result=await readTimeSavings(db,'pixelflow-image-tools','2026-10-01','2026-10-31')
+  expect(result.configs).toMatchObject({compress:{manual:30,automated:4.2},compressionDetection:{manual:3,automated:0.3}})
+  expect(result.revision).toBe(2)
+ })
+ it('全部服务量纳入检测，未知压缩与不完整历史 AI 组按最长方案补估，明确普通目录排除',async()=>{
   const uid=user(),sid=user(),common={user:uid,session:sid,task:user()}
   const entries=[
    event('image_process_finished','compress',{count:3,success:2,skipped:1,failed:0,qualified:2,pending:0,duration:5,mode:'over'},common),
@@ -235,9 +284,9 @@ describe('历史节时回溯与匿名用户',()=>{
   ]
   for(const e of entries)expect((await ingest({request:request('/api/events',{events:[e]}),env})).status).toBe(200)
   const result=await readTimeSavings(db,'pixelflow-image-tools','2026-10-01','2026-10-31')
-  expect(result.usage.lifetime).toEqual({compress:2,inspect:3,folders:1,finder:1})
-  expect(result.historical).toEqual({compress:0,inspect:1,folders:0,finder:0})
-  expect(calculateSavings(result.usage.lifetime,result.configs).savedSeconds).toBe(460)
+  expect(result.usage.lifetime).toMatchObject({compress:2,inspect:3,folders:2,finder:1,compression:{detected:100,estimated:97},estimatedFolders:1})
+  expect(result.historical).toMatchObject({compress:0,inspect:1,folders:1,finder:0})
+  expect(calculateSavings(result.usage.lifetime,result.configs).savedSeconds).toBe(3434)
  })
  it('浏览器用户跨会话与月份分别去重，匿名明细与期间总数一致并且站点隔离',async()=>{
   const uid=user(),sid=user(),other=user()

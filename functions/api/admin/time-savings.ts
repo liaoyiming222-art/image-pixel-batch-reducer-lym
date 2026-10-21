@@ -24,11 +24,13 @@ export async function onRequestPut({request,env}:Context){
   if(!body||typeof body!=='object'||Array.isArray(body)||Object.keys(body).some(k=>!['configs','revision'].includes(k))||!validTimeConfigs(body.configs)||!Number.isSafeInteger(body.revision)||Number(body.revision)<0)return json({error:'请输入 0–86400 秒、最多一位小数的流程时间。'},400)
   const site=new URL(request.url).searchParams.get('site')||DEFAULT_SITE
   if(!await getSite(env.DB,site))return json({error:'站点不存在。'},404)
+  // An older open dashboard may still submit four tools. Preserve the new setting.
+  const configs={...body.configs,compressionDetection:body.configs.compressionDetection||(await readTimeSettings(env.DB,site)).configs.compressionDetection}
   const now=Date.now(),revision=Number(body.revision)
   // A stale editor must not overwrite another window's settings.
   const result=revision===0
-   ? await env.DB.prepare('INSERT OR IGNORE INTO time_saving_settings(site_id,configs,revision,updated_at) VALUES(?,?,1,?)').bind(site,JSON.stringify(body.configs),now).run()
-   : await env.DB.prepare('UPDATE time_saving_settings SET configs=?,revision=revision+1,updated_at=? WHERE site_id=? AND revision=?').bind(JSON.stringify(body.configs),now,site,revision).run()
+   ? await env.DB.prepare('INSERT OR IGNORE INTO time_saving_settings(site_id,configs,revision,updated_at) VALUES(?,?,1,?)').bind(site,JSON.stringify(configs),now).run()
+   : await env.DB.prepare('UPDATE time_saving_settings SET configs=?,revision=revision+1,updated_at=? WHERE site_id=? AND revision=?').bind(JSON.stringify(configs),now,site,revision).run()
   if(result.meta?.changes!==1)return json({error:'参数已被其他窗口修改，请放弃修改并重新读取。'},409)
   return json(await readTimeSettings(env.DB,site))
  }catch{return json({error:'参数保存失败，请稍后重试。'},503)}

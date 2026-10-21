@@ -65,3 +65,27 @@ it('无历史和新完成记录时明确显示零秒，不用横线隐藏累计�
  expect(screen.getByText('累计预计节约').closest('article')?.querySelector('strong')?.textContent).toBe('0.0 秒')
  expect(screen.getByText('本期预计节约').closest('article')?.querySelector('strong')?.textContent).toBe('0.0 秒')
 })
+
+it('服务、已确认压缩与最长补估的贡献可对账，检测参数编辑可保存并重算累计与月份',async()=>{
+ let configs=defaultTimeConfigs(),revision=0
+ const counts={compress:60,inspect:0,folders:0,finder:0,compression:{detected:100,estimated:40},estimatedFolders:0}
+ const fetcher=vi.fn(async(_url:RequestInfo|URL,options?:RequestInit)=>{
+  if(options?.method==='PUT'){configs=JSON.parse(String(options.body)).configs;revision++;return new Response(JSON.stringify({configs,revision,updatedAt:Date.now()}))}
+  return new Response(JSON.stringify({site:'pixelflow-image-tools',configs,revision,updatedAt:null,firstAt:Date.now(),lastAt:Date.now(),readAt:Date.now(),usage:{lifetime:counts,period:counts,monthly:[{month:'2026-10',counts}]}}))
+ })
+ vi.stubGlobal('fetch',fetcher)
+ render(<TimeSavings site="pixelflow-image-tools" start="2026-10-01" end="2026-10-21" refreshAt={1}/>)
+ const input=await screen.findByLabelText('压缩前检测工具流程时间')
+ expect(input).toHaveValue(0.3)
+ expect(screen.getByText('累计预计节约').closest('article')?.querySelector('strong')?.textContent).toBe('49.5 分钟')
+ expect(screen.getByText('本期明确检测贡献 · 60 张')).toBeInTheDocument()
+ expect(screen.getByText('本期已确认压缩 · 60 次')).toBeInTheDocument()
+ expect(screen.getByText('本期按最长方案补估 · 40 张')).toBeInTheDocument()
+ expect(screen.getByText(/补估已包含在合计中/)).toBeInTheDocument()
+ fireEvent.change(input,{target:{value:'0.5'}})
+ expect(screen.getByText('累计预计节约').closest('article')?.querySelector('strong')?.textContent).toBe('49.2 分钟')
+ fireEvent.click(screen.getByRole('button',{name:'保存参数'}))
+ await screen.findByText('参数已保存，累计与月度估算已按当前参数重算。')
+ expect(configs.compressionDetection).toEqual({manual:3,automated:0.5})
+ expect(screen.getAllByText('49.2 分钟').length).toBeGreaterThanOrEqual(3)
+})
