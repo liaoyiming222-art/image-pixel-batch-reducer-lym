@@ -56,3 +56,12 @@ it('自动刷新期间不把新版本当作自己的编辑版本，避免覆盖�
  await waitFor(()=>expect(reads).toBe(2));await waitFor(()=>expect(screen.getByRole('button',{name:'保存参数'})).toBeEnabled())
  fireEvent.click(screen.getByRole('button',{name:'保存参数'}));await screen.findByText('版本冲突');expect(submitted).toBe(1);expect(input).toHaveValue(2.5)
 })
+
+it('无历史和新完成记录时明确显示零秒，不用横线隐藏累计值',async()=>{
+ const counts={compress:0,inspect:0,folders:0,finder:0}
+ vi.stubGlobal('fetch',vi.fn(async()=>new Response(JSON.stringify({site:'pixelflow-image-tools',configs:defaultTimeConfigs(),revision:0,updatedAt:null,firstAt:null,lastAt:null,readAt:Date.now(),historical:counts,usage:{lifetime:counts,period:counts,monthly:[]}}))))
+ render(<TimeSavings site="pixelflow-image-tools" start="2026-10-01" end="2026-10-21" refreshAt={1}/>)
+ await screen.findByLabelText('图片压缩工具流程时间')
+ expect(screen.getByText('累计预计节约').closest('article')?.querySelector('strong')?.textContent).toBe('0.0 秒')
+ expect(screen.getByText('本期预计节约').closest('article')?.querySelector('strong')?.textContent).toBe('0.0 秒')
+})

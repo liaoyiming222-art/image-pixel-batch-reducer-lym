@@ -1,3 +1,5 @@
+import {onRequestGet as usersGet} from '../functions/api/admin/users'
+import {readVisitors} from '../functions/lib/visitors'
 import {onRequestGet as timeGet,onRequestPut as timePut} from '../functions/api/admin/time-savings'
 import {readTimeSavings} from '../functions/lib/time-savings'
 import {calculateSavings,defaultTimeConfigs} from '../shared/time-savings'
@@ -191,14 +193,14 @@ it('新建目录只汇总实际成功的主子目录，去重、日期和站点�
 describe('节时数据和参数接口',()=>{
  async function cookie(){const r=await login({request:request('/api/admin/login',{password:'a-test-password-only'}),env});return r.headers.get('set-cookie')!.split(';')[0]}
  const putRequest=(body:unknown,session:string,site='pixelflow-image-tools',origin=host)=>new Request(host+'/api/admin/time-savings?site='+site,{method:'PUT',headers:{Origin:origin,'Content-Type':'application/json',Cookie:session},body:JSON.stringify(body)})
- it('只有明确的节时事件计入，四类工具独立、重试去重、跨月跨站不混算',async()=>{
+ it('明确与可确认历史事件共同估算，四类工具独立、重试去重、跨月跨站不混算',async()=>{
   for(const [tool,count] of [['compress',2],['inspect',3],['folders',1],['finder',4]] as const){const e=event('time_saving_completed',tool,{count},{task:user()});expect((await ingest({request:request('/api/events',{events:[e,e]}),env})).status).toBe(200)}
   await ingest({request:request('/api/events',{events:[event('inspection_finished','inspect',{count:99},{task:user()})]}),env})
   const at=Date.parse('2026-09-30T15:59:00Z')
   sqlite.prepare('INSERT INTO events(id,user_id,session_id,task_id,name,tool,occurred_at,received_at,day,version,props,effective,site_id) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)').run(user(),user(),user(),user(),'time_saving_completed','finder',at,at,'2026-09-30','analytics-v1','{"count":2}',0,'pixelflow-image-tools')
   const result=await readTimeSavings(db,'pixelflow-image-tools','2026-10-01','2026-10-31')
-  expect(result.usage.period).toEqual({compress:2,inspect:3,folders:1,finder:4})
-  expect(result.usage.lifetime.finder).toBe(6);expect(calculateSavings(result.usage.period,result.configs).savedSeconds).toBe(811)
+  expect(result.usage.period).toEqual({compress:2,inspect:102,folders:1,finder:4})
+  expect(result.usage.lifetime.finder).toBe(6);expect(calculateSavings(result.usage.period,result.configs).savedSeconds).toBe(7543)
   expect(result.usage.monthly.map(m=>m.month)).toEqual(['2026-10','2026-09'])
   expect((await readTimeSavings(db,'pixelfloweverybody','2026-10-01','2026-10-31')).firstAt).toBeNull()
   for(const e of [event('time_saving_completed','app',{count:1},{task:user()}),event('time_saving_completed','finder',{count:0},{task:user()}),event('time_saving_completed','finder',{count:1}),event('inspection_finished','finder',{count:1},{task:user()})])expect(validateEvent(e,now)).toBeNull()
@@ -216,5 +218,44 @@ describe('节时数据和参数接口',()=>{
   expect((await readTimeSavings(db,'pixelfloweverybody','2026-10-01','2026-10-31')).revision).toBe(0)
   expect((await timeGet({request:new Request(host+'/api/admin/time-savings?start=2026-02-31',{headers:{Cookie:session}}),env})).status).toBe(400)
   expect((await timeGet({request:new Request(host+'/api/admin/time-savings?site=unknown',{headers:{Cookie:session}}),env})).status).toBe(404)
+ })
+})
+
+describe('历史节时回溯与匿名用户',()=>{
+ it('同会话同日的新旧来源不重复相加，不以服务图片或失败目录冒充有效用量',async()=>{
+  const uid=user(),sid=user(),common={user:uid,session:sid,task:user()}
+  const entries=[
+   event('image_process_finished','compress',{count:3,success:2,skipped:1,failed:0,qualified:2,pending:0,duration:5,mode:'over'},common),
+   event('inspection_finished','inspect',{count:3},common),
+   event('inspection_finished','compress',{count:100},common),
+   event('folder_create_finished','folders',{count:1,created:1,children:2,completedExisting:0,existing:0,duplicate:0,failed:0,duration:5,mode:'aigc'},common),
+   event('folder_create_finished','folders',{count:1,created:1,children:1,completedExisting:0,existing:0,duplicate:0,failed:1,duration:5,mode:'aigc'},common),
+   event('folder_create_finished','folders',{count:4,created:4,children:0,completedExisting:0,existing:0,duplicate:0,failed:0,duration:5,mode:'normal'},common),
+   ...(['compress','inspect','folders','finder'] as const).map(tool=>event('time_saving_completed',tool,{count:tool==='compress'||tool==='inspect'?2:1},common)),
+  ]
+  for(const e of entries)expect((await ingest({request:request('/api/events',{events:[e]}),env})).status).toBe(200)
+  const result=await readTimeSavings(db,'pixelflow-image-tools','2026-10-01','2026-10-31')
+  expect(result.usage.lifetime).toEqual({compress:2,inspect:3,folders:1,finder:1})
+  expect(result.historical).toEqual({compress:0,inspect:1,folders:0,finder:0})
+  expect(calculateSavings(result.usage.lifetime,result.configs).savedSeconds).toBe(460)
+ })
+ it('浏览器用户跨会话与月份分别去重，匿名明细与期间总数一致并且站点隔离',async()=>{
+  const uid=user(),sid=user(),other=user()
+  const entries=[event('page_view','app',{}, {user:uid,session:sid}),event('page_view','app',{}, {user:uid,session:user()}),event('inspection_finished','inspect',{count:3},{user:uid,session:sid,task:user()}),event('page_view','app',{}, {user:other,session:user()})]
+  for(const e of [...entries,entries[0]])await ingest({request:request('/api/events',{events:[e]}),env})
+  const at=Date.parse('2026-09-30T15:59:00Z');sqlite.prepare('INSERT INTO events(id,user_id,session_id,task_id,name,tool,occurred_at,received_at,day,version,props,effective,site_id) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)').run(user(),uid,user(),'','page_view','app',at,at,'2026-09-30','analytics-v1','{}',0,'pixelflow-image-tools')
+  const stats=await readLiveStats(db,'2026-10-01','2026-10-31')
+  expect(stats.visitors).toMatchObject({lifetime:2,period:2,monthly:[{month:'2026-09',users:1},{month:'2026-10',users:2}]})
+  const detail=await readVisitors(db,'pixelflow-image-tools','2026-10-01','2026-10-31',1)
+  expect(detail.total).toBe(2);expect(detail.users).toHaveLength(2)
+  const row=detail.users.find(item=>item.inspected===3)!;expect(row).toMatchObject({pageviews:2,sessions:2})
+  expect(JSON.stringify(detail)).not.toContain(uid);expect(JSON.stringify(detail)).not.toContain(other)
+  expect((await readVisitors(db,'pixelflow-image-tools','2026-10-01','2026-10-31',1)).users.find(item=>item.inspected===3)!.id).toBe(row.id)
+  expect((await readVisitors(db,'pixelfloweverybody','2026-10-01','2026-10-31',1)).total).toBe(0)
+  expect((await readVisitors(db,'pixelflow-image-tools','2026-10-01','2026-10-31',2)).users).toEqual([])
+  expect((await usersGet({request:new Request(host+'/api/admin/users'),env})).status).toBe(401)
+  const auth=await login({request:request('/api/admin/login',{password:'a-test-password-only'}),env}),cookie=auth.headers.get('set-cookie')!.split(';')[0]
+  expect((await usersGet({request:new Request(host+'/api/admin/users?page=-1',{headers:{Cookie:cookie}}),env})).status).toBe(400)
+  expect((await usersGet({request:new Request(host+'/api/admin/users?site=unknown',{headers:{Cookie:cookie}}),env})).status).toBe(404)
  })
 })

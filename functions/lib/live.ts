@@ -1,14 +1,15 @@
 import { beijingDay, type Database } from './db'
 import { listSites, DEFAULT_SITE } from './sites'
+import { visitorCounts } from './visitors'
 // A single scan supplies additive daily, monthly and lifetime counts. No external analytics requests.
 export async function readLiveStats(db:Database,start:string,end:string,siteId=DEFAULT_SITE){
- const [registry,result]=await Promise.all([listSites(db),db.prepare(`SELECT day,
+ const [registry,result,visitors]=await Promise.all([listSites(db),db.prepare(`SELECT day,
  SUM(CASE WHEN name='page_view' THEN 1 ELSE 0 END) AS pageviews,
  SUM(CASE WHEN name='image_process_finished' THEN COALESCE(json_extract(props,'$.success'),0) ELSE 0 END) AS processed,
  SUM(CASE WHEN name='inspection_finished' THEN COALESCE(json_extract(props,'$.count'),0) ELSE 0 END) AS inspected,
  SUM(CASE WHEN name='folder_create_finished' THEN COALESCE(json_extract(props,'$.created'),0)+COALESCE(json_extract(props,'$.children'),0) ELSE 0 END) AS folders,
  MIN(occurred_at) AS first_at,MAX(received_at) AS last_at
- FROM events WHERE site_id=? GROUP BY day ORDER BY day`).bind(siteId).all<{day:string;pageviews:number;processed:number;inspected:number;folders:number;first_at:number;last_at:number}>()])
+ FROM events WHERE site_id=? GROUP BY day ORDER BY day`).bind(siteId).all<{day:string;pageviews:number;processed:number;inspected:number;folders:number;first_at:number;last_at:number}>(),visitorCounts(db,siteId,start,end)])
  const site=registry.results.find(s=>s.id===siteId);if(!site)throw new Error('Unknown site')
  const empty=()=>({pageviews:0,processed:0,inspected:0,folders:0})
  const lifetime=empty(),period=empty(),months=new Map<string,ReturnType<typeof empty>>()
@@ -20,5 +21,5 @@ export async function readLiveStats(db:Database,start:string,end:string,siteId=D
  const byDay=new Map(result.results.map(r=>[r.day,r])),series=[]
  const from=firstDay&&firstDay>start?firstDay:start,to=end<today?end:today
  if(firstDay)for(let at=Date.parse(from+'T00:00:00Z');at<=Date.parse(to+'T00:00:00Z');at+=86400000){const day=new Date(at).toISOString().slice(0,10);series.push({day,...(byDay.get(day)||empty())})}
- return {site,sites:registry.results,lifetime,period,monthly:[...months].sort(([a],[b])=>b.localeCompare(a)).map(([month,counts])=>({month,...counts})),series,firstAt,lastAt,readAt:Date.now(),start,end,source:'events',timezone:'Asia/Shanghai'}
+ return {site,sites:registry.results,lifetime,period,visitors,monthly:[...months].sort(([a],[b])=>b.localeCompare(a)).map(([month,counts])=>({month,...counts})),series,firstAt,lastAt,readAt:Date.now(),start,end,source:'events',timezone:'Asia/Shanghai'}
 }
