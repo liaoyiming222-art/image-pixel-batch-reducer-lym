@@ -1,0 +1,176 @@
+{
+  "schemaVersion": 1,
+  "updatedAt": "2026-10-27",
+  "product": "PixelFlow",
+  "direction": "A：精致轻立体（用户确认）",
+  "source": {
+    "repository": "https://github.com/liaoyiming222-art/image-pixel-batch-reducer-lym",
+    "baseCommit": "e410603c5b8612f2a7be8b32b252eddc81ca5d18",
+    "branch": "design/brand-soft-depth",
+    "version": "1.0.0",
+    "state": "基于上述提交的品牌补丁；仅同步母版、导航、favicon、README 与正式展示素材。",
+    "captureUrl": "http://127.0.0.1:4191/",
+    "captureBuild": "2026-10-26 本地 dist，2026-10-27 功能图仍使用同一构建。"
+  },
+  "brandMaster": {
+    "path": "public/pixelflow.svg",
+    "sha256": "d134a662d2d21dd3231e58e63351f281f551401a7e4512dd742c472f7df223ff",
+    "uses": [
+      "导航",
+      "浏览器图标",
+      "README"
+    ],
+    "visual": "三个像素汇入画幅，靛紫底板、瓷白像素与克制边缘光。"
+  },
+  "assets": [
+    {
+      "path": "docs/images/pixelflow-home.png",
+      "capturedAt": "2026-10-26",
+      "width": 1439,
+      "height": 1050,
+      "bytes": 60176,
+      "sha256": "47f6212126ec9ac163dc2ad9100939a42d33fe3f239e9faa77b17b2aefca4412",
+      "kind": "full-page",
+      "purpose": "首页总览，README 首图，保留真实导航与四项工具。",
+      "source": "本地既有构建实际运行截图；裁切仅改变取景，未改绘界面或结果。"
+    },
+    {
+      "path": "docs/images/pixelflow-cover.png",
+      "capturedAt": "2026-10-26",
+      "width": 1168,
+      "height": 540,
+      "bytes": 43224,
+      "sha256": "59ee9e706aa5c89cb9cac62646c94e4d628a0d53654c7506b1d90d69abd64fd9",
+      "kind": "crop",
+      "purpose": "首页标题与四项工具取景，用于宽封面。",
+      "source": "本地既有构建实际运行截图；裁切仅改变取景，未改绘界面或结果。"
+    },
+    {
+      "path": "docs/images/pixelflow-compression.jpg",
+      "capturedAt": "2026-10-27",
+      "width": 1414,
+      "height": 990,
+      "bytes": 67820,
+      "sha256": "1493d1813f386c39084603c9345e5eb9c715a040a2c32995e8160d80db6d3d01",
+      "kind": "viewport",
+      "purpose": "快速压缩的实际设置、队列与两张 PNG 转 JPG 结果，README 功能图。",
+      "source": "本地既有构建实际运行截图；裁切仅改变取景，未改绘界面或结果。"
+    },
+    {
+      "path": "docs/images/pixelflow-compression-focus.jpg",
+      "capturedAt": "2026-10-27",
+      "width": 1112,
+      "height": 496,
+      "bytes": 34355,
+      "sha256": "8d7c871b647ebbf99e5b30de17afaa970340733c1876c3c959264111bcc97bd7",
+      "kind": "crop",
+      "purpose": "同一实际压缩状态的设置与结果局部，用于作品集详情。",
+      "source": "本地既有构建实际运行截图；裁切仅改变取景，未改绘界面或结果。"
+    },
+    {
+      "path": "docs/images/pixelflow-compression-mobile.jpg",
+      "capturedAt": "2026-10-27",
+      "width": 351,
+      "height": 400,
+      "bytes": 18842,
+      "sha256": "572907f1dc4646ee5d11468989868b3d0dbbdbb7f3b19818f891d15b8744833a",
+      "kind": "mobile-crop",
+      "purpose": "真实窄屏队列结果局部，用于手机构图。",
+      "source": "本地既有构建实际运行截图；裁切仅改变取景，未改绘界面或结果。"
+    },
+    {
+      "path": "docs/images/pixelflow-finder-results.jpg",
+      "capturedAt": "2026-10-27",
+      "width": 1112,
+      "height": 397,
+      "bytes": 28689,
+      "sha256": "d7e7c2d8784cd47d3c9a24280c1ec0c9cc85ca83b56f7af1a9ded9d082c993d7",
+      "kind": "crop",
+      "purpose": "真实查找结果：三项图名中两项找到、一项未找到，README 功能图。",
+      "source": "本地既有构建实际运行截图；裁切仅改变取景，未改绘界面或结果。"
+    },
+    {
+      "path": "docs/images/pixelflow-finder-mobile.jpg",
+      "capturedAt": "2026-10-27",
+      "width": 351,
+      "height": 622,
+      "bytes": 22036,
+      "sha256": "81a987bcc118b87662b9612982d17e5a82c795e4c256a0303cf24129e35df547",
+      "kind": "mobile-crop",
+      "purpose": "真实窄屏图名、目录与查找结果局部，用于手机详情。",
+      "source": "本地既有构建实际运行截图；裁切仅改变取景，未改绘界面或结果。"
+    },
+    {
+      "path": "docs/images/pixelflow-home-mobile.jpg",
+      "capturedAt": "2026-10-27",
+      "width": 375,
+      "height": 1876,
+      "bytes": 51828,
+      "sha256": "cac1bb2e84acc2c9149b971349bbb0b26a723251f798bc0974034c65ab61d9c0",
+      "kind": "mobile-full-page",
+      "purpose": "真实 375px 宽首页全页，保留四工具重排及完整说明。",
+      "source": "本地既有构建实际运行截图；裁切仅改变取景，未改绘界面或结果。"
+    },
+    {
+      "path": "docs/images/pixelflow-cover-mobile.jpg",
+      "capturedAt": "2026-10-27",
+      "width": 354,
+      "height": 447,
+      "bytes": 12604,
+      "sha256": "cd83b4fb1bfb1d783558e3e6a1da652e5c263c18bad37505e87b2d1d5a5674cf",
+      "kind": "mobile-crop",
+      "purpose": "真实窄屏首页标题与首项工具取景，用于手机封面。",
+      "source": "本地既有构建实际运行截图；裁切仅改变取景，未改绘界面或结果。"
+    }
+  ],
+  "controlledDemo": {
+    "inputs": [
+      {
+        "name": "室内场景.png",
+        "source": "灵犀公开演示图 public/images/living-room.png",
+        "bytes": 2218755,
+        "sha256": "6a5878879a1124de7bb250faf7b0a0e344321b91896f828d29f5a08a4c24c851"
+      },
+      {
+        "name": "厨房空间.png",
+        "source": "灵犀公开演示图 public/images/kitchen.png",
+        "bytes": 1721372,
+        "sha256": "26f744a596ff56c401f68a778dbe41b0182ea28249e285c4f0a0f9401958256b1"
+      }
+    ],
+    "compression": {
+      "mode": "仅转格式",
+      "results": [
+        "室内场景.png：2.12 MB → 263.4 KB，1024 × 1024",
+        "厨房空间.png：1.64 MB → 193.7 KB，1024 × 1024"
+      ],
+      "meaning": "只表示这两个实际样本，不代表平均压缩率或性能。"
+    },
+    "finder": {
+      "names": [
+        "室内场景.png",
+        "厨房空间.png",
+        "待补充封面.png"
+      ],
+      "result": {
+        "found": 2,
+        "missing": 1
+      },
+      "directory": "专用虚构演示目录，不读取真实共享目录或个人图片。"
+    },
+    "limits": [
+      "未执行真实共享目录权限测试。",
+      "未测试线上统计、真实移动设备或全产品功能。",
+      "图片处理与查找仅使用公开演示输入。"
+    ]
+  },
+  "verification": {
+    "visualReview": "主线程实际浏览器操作与截图；接手代理复核首页、压缩、查找结果和手机首页。",
+    "noGeneratedUi": true,
+    "builtMasterMatchesSource": true,
+    "preservedUntrackedFile": "项目交接.md",
+    "build": "2026-10-27：tsc -b && vite build 通过，产物与截图所用构建同名；保留既有 500KB chunk 提示，未为品牌任务重构。",
+    "assetIntegrity": "9 张归档图片尺寸、字节数与 SHA-256 逐项通过；README 与素材目录链接通过。",
+    "diffCheck": "git diff --check 通过。"
+  }
+}

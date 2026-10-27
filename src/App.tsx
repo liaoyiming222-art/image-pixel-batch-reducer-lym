@@ -299,7 +299,7 @@ function SuiteHome({ onOpen }: { onOpen: (tool: ToolKey) => void }) {
 export default function App() {
   const [activeTool, setActiveTool] = useState<ToolKey>('home')
   const openTool = (tool: ToolKey) => { if (tool !== activeTool && tool !== 'home') track('tool_open', tool); setActiveTool(tool) }
-  return <ImageWorkspaceProvider><div className="suite-shell"><nav className="suite-nav"><button className="suite-brand" onClick={() => openTool('home')}><span><ImagePlus size={19} /></span><b>PixelFlow</b><small>本地效率工具</small></button><div className="suite-nav-links"><button className={activeTool === 'home' ? 'active' : ''} onClick={() => openTool('home')}><Home size={15} />首页</button>{tools.map(tool => <button key={tool.key} className={activeTool === tool.key ? 'active' : ''} onClick={() => openTool(tool.key)}><tool.icon size={15} />{tool.title}</button>)}</div><div className="nav-local"><span/>本地运行</div></nav>
+  return <ImageWorkspaceProvider><div className="suite-shell"><nav className="suite-nav"><button className="suite-brand" onClick={() => openTool('home')}><img className="suite-brand-mark" src="/pixelflow.svg" width={44} height={44} alt="" /><b>PixelFlow</b><small>本地效率工具</small></button><div className="suite-nav-links"><button className={activeTool === 'home' ? 'active' : ''} onClick={() => openTool('home')}><Home size={15} />首页</button>{tools.map(tool => <button key={tool.key} className={activeTool === tool.key ? 'active' : ''} onClick={() => openTool(tool.key)}><tool.icon size={15} />{tool.title}</button>)}</div><div className="nav-local"><span/>本地运行</div></nav>
     {activeTool === 'home' && <SuiteHome onOpen={openTool} />}
     {activeTool === 'compress' && <CompressionTool />}
     {activeTool === 'inspect' && <ImageInspector />}
