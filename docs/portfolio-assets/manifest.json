@@ -1,0 +1,299 @@
+{
+  "schema_version": 1,
+  "product_id": "pixelflow",
+  "product_name": "PixelFlow",
+  "repository": "https://github.com/liaoyiming222-art/image-pixel-batch-reducer-lym",
+  "created_date": "2026-11-02",
+  "code_version": {
+    "base_commit": "530bdd6ebf3e42db353838db6eb5cfeabf004ece",
+    "capture_state": "Existing user changes were present in finder/admin modules; these are not demonstrated or included in the asset commit. Demonstrated compression and inspector code match the base commit.",
+    "captured_code_sha256": {
+      "index.html": "4eea7e4a69009284ad3cede2942bcba7403f5d543016c55f1b8d6aa41f6573a4",
+      "package.json": "3a6305e7e0659c396bb7ed89b66603cbb2d6422458560c34ee080d82ab21f3e3",
+      "public/pixelflow.svg": "62fef5c1091a28ac296223b1495aba3581374e5a8e202ecf54dd2bb9c55649ef",
+      "src/AnalyticsAdmin.refresh.test.tsx": "b229e145ed9a1b637ceef20374a6f8d3accd8531b83715f5eeb29701eeba05bf",
+      "src/AnalyticsAdmin.test.ts": "7d95e6d3af7df5b460660274c5b85100ba78a547ba8a75a429ed86a493c80c25",
+      "src/AnalyticsAdmin.tsx": "b26f26b2ebf686a5dcdd8355acf8d476505d4bebd9ffaaa6dcd9796c87aaee11",
+      "src/AnonymousUsers.test.tsx": "503f99b5d9e2e95666bf33618fdbf8ce0c14496f842c56621be209d88b785518",
+      "src/AnonymousUsers.tsx": "0ae0655c95623a2ec5983c31d9846d1611674e79f33ab522c07901ad223f8f92",
+      "src/App.tsx": "820304ea6a5c3ef03b3ac3256ced9831ebb954f3a900c803b7d326b17aeb387b",
+      "src/TimeSavings.test.tsx": "cd9d6016556e58e59905831a8ab0d5de533f72c903103f858554771887800043",
+      "src/TimeSavings.tsx": "8e5a2eae1928453d19d497b4a18635dad97103cfea556f5a8d5391ab6605a1ec",
+      "src/analytics-admin.css": "c862002310b3b79897ee6ba526659d0d78ad463f62f76e68dadea4c1f8158654",
+      "src/analytics.test.ts": "cbe8100757aec784ad5782227ece20fa8d3183860341c44fd36e3a0230406768",
+      "src/analytics.ts": "73580a17481bfa1910651cfbc982f38ebd4278449de898a1a22f6982deccf068",
+      "src/fileEntries.ts": "b057030739ce68b27b1bb336181116b3e27bb5c0b049a15243008255932541f1",
+      "src/folder-upload.css": "72754b38e557b6262c4a1ee7fdfd7f43b8e039999196b3711ed1e777dac230a9",
+      "src/imageImport.test.ts": "09d28c42e0939c222736db39ce273f9cda7ace625c321e2dc59117bc3e0e013b",
+      "src/imageImport.ts": "45be5ad73da1915dd0f0eefc8093f248f0ae200ad3b94ea3fcdd34bcacba0607",
+      "src/imageProcessor.test.ts": "5a6e7e0e19a8c9154491400d4c78a01d44a062ae0a51698f57832de0a64cbac4",
+      "src/imageProcessor.ts": "7523ab7cde4cf0a0060cffa682f8cd046c8df5c24446569e0b09ce09c0ba8366",
+      "src/imageWorkspace.test.tsx": "bccaa1e04a0db01224d7d6ad9b6d5783255082bcdc92288467f267e3ff8f6377",
+      "src/imageWorkspace.tsx": "86da5e59f72a7c0247f447f5f3cfa1c25e99c7058b83e32488759da06083e22e",
+      "src/main.tsx": "9195bbcd0612fb7438887e5361a1be505e5226f733aa0a2bd287e28da8b2490c",
+      "src/styles.css": "5d8ea49e9591fe3e7f44881fac9b896254b0ce5d35bf7cce992507049e564a28",
+      "src/suite.css": "d958181be9fda2c3c15ef7b9c24beff67b624a83c3192567afc84dafaa14b989",
+      "src/test/setup.ts": "977afde26bba6a51325908cd7713cbfdc87d18f06b78b237c8f364c44864b7de",
+      "src/time-savings.css": "eba6809f34745a5b928f266c3c6032203ceffd02138e843281b19bccfd719a61",
+      "src/tools/finder/ImageFinder.test.tsx": "a239fca79f2a7013766027b4b2359705cea392258e87bf715340f115a72664dd",
+      "src/tools/finder/ImageFinder.tsx": "651fa18395c831e4080a5a8db8476e5516a7bb3a61954b3b02ec4bb256984ed4",
+      "src/tools/finder/files.ts": "b8bfd4f11cf743b06210c9c39ee17c68e34cb9c8cfca89aec876a313c2e82aaa",
+      "src/tools/finder/finder.css": "fb6df64fb7fc239c7c8c0766039eca65ee33ae17502eff18f9f01865af051ce2",
+      "src/tools/finder/finder.test.ts": "fddef810b6c431a42198b612dfa0cd1c75775ade2bc784cdb2e8fd5c4f597800",
+      "src/tools/finder/model.ts": "0da35ac9bc7d02dc941f1455707b039a16b9a7a178285e68c226f1d866273637",
+      "src/tools/finder/workbook.test.tsx": "85b7a87ff5e73a906a5776bb8e4f76f61ab059defaf590b80158ec17a4d7a931",
+      "src/tools/folder/AigcFolderCreator.test.tsx": "5470ce6fd9aee3edd48fb390651818568014f7cdd9e6be4cf12167e2ee8f09f4",
+      "src/tools/folder/AigcFolderCreator.tsx": "8ac5c67e0146a42d2d45a7a58b25f31a0a34d7534146aa4a54cbaa2eeb4f48ef",
+      "src/tools/folder/FolderCreator.tsx": "8e6eae909204dec86a3d242ab4454596d1d308782a49f2c2ef4479e5ba45cc17",
+      "src/tools/folder/createDirectories.test.ts": "00fda292d93c2935d5273dba544dddee6a703c4df532935670a91c4bbb564b98",
+      "src/tools/folder/createDirectories.ts": "202e0b0fd80b18772a93c09fbbdda743bd427138267127481073b20050dc94ac",
+      "src/tools/folder/folder.css": "7d85c0f029b1f9f269257c7c56555ab6d5bab9be737cfd08cc335668c4577988",
+      "src/tools/folder/naming.ts": "d4ed28f34bea21c9f0b836a6937b07b2f9732a41609c832f9510d7032f6b126a",
+      "src/tools/folder/parser.ts": "8b0159e2c10936a8c83393dcdefbce80ea40db766d32e499c7c22088dbcb70f7",
+      "src/tools/inspector/ImageInspector.tsx": "83c4cb220aa19ff3f65a6f75f509f083198e79428783edf55653c59b859d5641",
+      "src/tools/inspector/inspector.css": "d9c40b0b0768525d770be5a771048334bfec861cb7e1e51c18418727d8f29493",
+      "src/tools/inspector/types.ts": "ed6520a975899c2404153dfebf9ea8d93872e708ac21e6d3905832d223587f2f",
+      "src/tools/inspector/utils.ts": "1fb499d7b04b6382ab5ea7154889bff3bc4a4c81b81d084f437d9b31d60acbd5",
+      "src/tools/merged-tools.test.ts": "9a9da512ffea45dbfb4eadee84c144f3aa642b4f1b032d12d3c01b9b3ae69d02",
+      "src/types.ts": "e01b303766eb5cae9740c6634a1c6d62e273f610d9b31c24f3907c86e4bee4fe",
+      "src/useTransientNotice.test.tsx": "c6085284265303647abf4c034d7a09daec26649ede7e71d237dcfbe985403e4e",
+      "src/useTransientNotice.ts": "bd195544afe8d649a40e1adb88cdf1a5a72631bad63265dfd8cf93ed2b340087",
+      "src/utif.d.ts": "beff50fc1eedc3080d126d06954270a7ecbf5f9b0783cc4fb78e5c6657fa2a14",
+      "src/utils.test.ts": "f8a044a73f1cd776cd2be7a7ea81f57eb844a5eb0951a0e9cd5fce031acc21c1",
+      "src/utils.ts": "74f824600e6fd74b03b9de253eeca117419075eac3a72b0aa34eca6195b828ec",
+      "src/vite-env.d.ts": "65996936fbb042915f7b74a200fcdde7e410f32a669b1ab9597cfaa4b0faddb5",
+      "vite.config.ts": "6dc0ce25c4170ac9fbadb4dbd19ca5c2ceb57b9c5efc5090b82e2923f53dd679"
+    }
+  },
+  "capabilities": {
+    "verified": [
+      "实际导入三张几何 PNG",
+      "仅转格式：三张实际转 JPG 并下载 ZIP",
+      "实际按 1:1、16:9、3:4 分成三组",
+      "390px 宽浏览器响应式队列截图"
+    ],
+    "code_reviewed_only": [
+      "大小与最长边限制",
+      "批量创建文件夹",
+      "按名称查找图片"
+    ],
+    "boundaries": [
+      "几何图与图名为虚构输入；结果为应用实际输出",
+      "压缩率仅适用于所附样本，不代表平均性能",
+      "未验证真实共享目录、线上匿名统计、生产数据库与部署状态",
+      "浏览器工具，非手机安装插件；窄屏截图不代表真机兼容验收",
+      "文件内容本地处理；正式站点可收集匿名数量和状态统计",
+      "未使用付费生成服务、个人图片、隐私数据或外站热链"
+    ]
+  },
+  "capture_report": "sources/capture-report.json",
+  "actual_output": {
+    "path": "samples/actual-output.zip",
+    "sha256": "8139ecfac9c85437ca960c9c710d0c7ca4b9b07620699bf7090baafcb5547567",
+    "files": [
+      {
+        "name": "演示方图_1比1_resized.jpg",
+        "bytes": 29195,
+        "width": 1200,
+        "height": 1200,
+        "sha256": "091bfe7e20657a96a0edace81835dca2be66d3b71e04bb839e25b5403f83256d"
+      },
+      {
+        "name": "演示横图_16比9_resized.jpg",
+        "bytes": 31438,
+        "width": 1600,
+        "height": 900,
+        "sha256": "615e67094d31eeca4398ef43c2eede764d84b82c628c1689e78a4c972e2ab620"
+      },
+      {
+        "name": "演示竖图_3比4_resized.jpg",
+        "bytes": 25761,
+        "width": 900,
+        "height": 1200,
+        "sha256": "623b2844b13d7e0b8697a311b2c77042b39d41824ae53bbaba5d7581200e7a40"
+      }
+    ]
+  },
+  "assets": [
+    {
+      "path": "card.webp",
+      "width": 1200,
+      "height": 900,
+      "format": "webp",
+      "sha256": "9660f975ea679b6fa8fd9af4f997eff60529bde06899e3370c2d85bbcb6028c2",
+      "alt_zh": "PixelFlow 图片批处理作品卡片，展示三张几何图的真实转码队列",
+      "purpose": "造物集作品卡片",
+      "source": "layout.html card；sources/compression-queue.png"
+    },
+    {
+      "path": "detail-01.webp",
+      "width": 1920,
+      "height": 1200,
+      "format": "webp",
+      "sha256": "87ce087ba6283692d43b9b82271a07473c74befed8d3027b6c7e0246b351162f",
+      "alt_zh": "PixelFlow 比例检测详情图，真实检测出一比一、十六比九、三比四三个画幅组",
+      "purpose": "造物集功能详情",
+      "source": "layout.html detail-01；sources/groups-focus.png"
+    },
+    {
+      "path": "hero.webp",
+      "width": 1920,
+      "height": 1200,
+      "format": "webp",
+      "sha256": "e76fb1cf75ef2643d1319ef641ffad3dc22aebbbdcfe889a63f14d6b3d5cd040",
+      "alt_zh": "PixelFlow 批量处理图片宣传主图，展示真实转 JPG 设置与三项完成结果",
+      "purpose": "造物集首页展台",
+      "source": "layout.html hero；sources/compression-focus.png"
+    },
+    {
+      "path": "icon-512.png",
+      "width": 512,
+      "height": 512,
+      "format": "png",
+      "sha256": "fea48af63bd4e8c355104fac1dab4a1eca09c9a2c13afac7bd8b0c883b94fbe0",
+      "alt_zh": "PixelFlow 正式产品图标，透明背景",
+      "purpose": "512px 产品图标",
+      "source": "icon.svg 经 Sharp 栅格化"
+    },
+    {
+      "path": "icon.svg",
+      "width": 256,
+      "height": 256,
+      "format": "svg",
+      "sha256": "62fef5c1091a28ac296223b1495aba3581374e5a8e202ecf54dd2bb9c55649ef",
+      "alt_zh": "PixelFlow 正式靛紫图标，三个像素汇入画幅",
+      "purpose": "产品图标母版",
+      "source": "原样沿用 public/pixelflow.svg"
+    },
+    {
+      "path": "mobile.webp",
+      "width": 900,
+      "height": 1200,
+      "format": "webp",
+      "sha256": "11b3daabea719e6ee25554811f5b968a3b8f8bf7da18e9211d63fd38c8e3e057",
+      "alt_zh": "PixelFlow 窄屏宣传图，独立纵向排版展示真实窄屏图片队列",
+      "purpose": "造物集窄屏展示",
+      "source": "layout.html mobile；sources/mobile-queue.png"
+    },
+    {
+      "path": "samples/演示方图.png",
+      "width": 1200,
+      "height": 1200,
+      "format": "png",
+      "sha256": "f4b2c1f8fe569558d8eed0a9cc6556410eba943becbb31f6812e1882ac250f3b",
+      "alt_zh": "自制几何测试样本，非产品输出",
+      "purpose": "复现用输入",
+      "source": "capture.cjs 生成的几何图形"
+    },
+    {
+      "path": "samples/演示横图.png",
+      "width": 1600,
+      "height": 900,
+      "format": "png",
+      "sha256": "8d6fe5ea3b0611347401ffa3ca497d7d5df3928d592b1238f10e1828b0171eed",
+      "alt_zh": "自制几何测试样本，非产品输出",
+      "purpose": "复现用输入",
+      "source": "capture.cjs 生成的几何图形"
+    },
+    {
+      "path": "samples/演示竖图.png",
+      "width": 900,
+      "height": 1200,
+      "format": "png",
+      "sha256": "3b78a283eb0c6988b9f43286258b36f9b2dc1ce153e1612f9e6c6649330097ae",
+      "alt_zh": "自制几何测试样本，非产品输出",
+      "purpose": "复现用输入",
+      "source": "capture.cjs 生成的几何图形"
+    },
+    {
+      "path": "sources/compression-focus.png",
+      "width": 1120,
+      "height": 680,
+      "format": "png",
+      "sha256": "faf1b48eed974cfae1ddef97bf0ecbee1851db170fc36bb30bdf29aa220da98e",
+      "alt_zh": "PixelFlow 实际运行界面截图或原图局部裁切：sources/compression-focus.png",
+      "purpose": "真实界面排版来源",
+      "source": "render.cjs 固定坐标裁切，无界面重绘"
+    },
+    {
+      "path": "sources/compression-mobile.png",
+      "width": 390,
+      "height": 1733,
+      "format": "png",
+      "sha256": "11f6a69967cce8b634f979fb12631fcb75069966da22be6e7938347f15b81473",
+      "alt_zh": "PixelFlow 实际运行界面截图或原图局部裁切：sources/compression-mobile.png",
+      "purpose": "真实界面排版来源",
+      "source": "capture.cjs 操作本地运行产品后截图"
+    },
+    {
+      "path": "sources/compression-queue.png",
+      "width": 1120,
+      "height": 360,
+      "format": "png",
+      "sha256": "10197492cd8b60dc663afcfd5899f7eb09db3692fc7507b13cfab93f5f8354e4",
+      "alt_zh": "PixelFlow 实际运行界面截图或原图局部裁切：sources/compression-queue.png",
+      "purpose": "真实界面排版来源",
+      "source": "render.cjs 固定坐标裁切，无界面重绘"
+    },
+    {
+      "path": "sources/compression.png",
+      "width": 1440,
+      "height": 1054,
+      "format": "png",
+      "sha256": "9777f5ef4cdf4362c200ab097e929435d442d06616ad0386f3f9bedb313929ae",
+      "alt_zh": "PixelFlow 实际运行界面截图或原图局部裁切：sources/compression.png",
+      "purpose": "真实界面排版来源",
+      "source": "capture.cjs 操作本地运行产品后截图"
+    },
+    {
+      "path": "sources/display-proof.webp",
+      "width": 1440,
+      "height": 1500,
+      "format": "webp",
+      "sha256": "f3d6ee44baf8b210a9167acb6a3ff0343e1c1a00f371bb489f0bccd3a5089119",
+      "alt_zh": "桌面、手机展示尺寸及小图标的综合校验预览",
+      "purpose": "视觉校验",
+      "source": "verify.cjs 等比缩放对照"
+    },
+    {
+      "path": "sources/groups-focus.png",
+      "width": 1130,
+      "height": 390,
+      "format": "png",
+      "sha256": "d6701f88e62cb284ba4657c486b1e061cf6adb86b11a931bb3f4e1abe6b2599d",
+      "alt_zh": "PixelFlow 实际运行界面截图或原图局部裁切：sources/groups-focus.png",
+      "purpose": "真实界面排版来源",
+      "source": "render.cjs 固定坐标裁切，无界面重绘"
+    },
+    {
+      "path": "sources/groups.png",
+      "width": 1440,
+      "height": 1050,
+      "format": "png",
+      "sha256": "3094c56cf0e46b7286f89aea61b4bdcbc94763a955bc2fc7c6f4579f280fb2bb",
+      "alt_zh": "PixelFlow 实际运行界面截图或原图局部裁切：sources/groups.png",
+      "purpose": "真实界面排版来源",
+      "source": "capture.cjs 操作本地运行产品后截图"
+    },
+    {
+      "path": "sources/home.png",
+      "width": 1440,
+      "height": 1050,
+      "format": "png",
+      "sha256": "f4881c5c7466b81244dbae8eddc00ed9923000fd3a3797cf2eac163d21750e06",
+      "alt_zh": "PixelFlow 实际运行界面截图或原图局部裁切：sources/home.png",
+      "purpose": "真实界面排版来源",
+      "source": "capture.cjs 操作本地运行产品后截图"
+    },
+    {
+      "path": "sources/mobile-queue.png",
+      "width": 366,
+      "height": 535,
+      "format": "png",
+      "sha256": "a2c35e397beff26f2c9b74d7924a443f95706b3477bf11f110ba4e278c0b177a",
+      "alt_zh": "PixelFlow 实际运行界面截图或原图局部裁切：sources/mobile-queue.png",
+      "purpose": "真实界面排版来源",
+      "source": "capture.cjs 操作本地运行产品后截图"
+    }
+  ]
+}

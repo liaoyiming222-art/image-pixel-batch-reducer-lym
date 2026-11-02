@@ -1,5 +1,11 @@
 # PixelFlow · 本地效率工具
 
+<img src="docs/portfolio-assets/icon.svg" width="64" height="64" alt="PixelFlow 正式产品图标">
+
+![PixelFlow 批量处理图片：真实转 JPG 设置与结果](docs/portfolio-assets/hero.webp)
+
+[造物集正式宣传素材、来源与功能边界](docs/portfolio-assets/README.md) · [素材清单 manifest](docs/portfolio-assets/manifest.json)
+
 <img src="public/pixelflow.svg" width="96" height="96" alt="PixelFlow 产品标志：像素汇聚成画幅">
 
 PixelFlow 是一个在浏览器中运行的本地工具箱，提供图片压缩、画幅比例检测与分组、文件夹批量处理，以及按名称查找图片。图片和表格内容在设备本地处理，无需上传到服务器。
