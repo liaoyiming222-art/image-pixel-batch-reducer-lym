@@ -1,0 +1,479 @@
+{
+  "task_id": "detail-v2-20261104-pixelflow",
+  "product_id": "pixelflow",
+  "repository": "https://github.com/liaoyiming222-art/image-pixel-batch-reducer-lym",
+  "branch": "codex/detail-v2-20261104-pixelflow",
+  "capture_code_sha": "530bdd6ebf3e42db353838db6eb5cfeabf004ece",
+  "asset_parent_sha": "df191acb1dd14be2428201e100bfa31094d9bd0c",
+  "capture_environment": "git archive of locked SHA, isolated directory, fresh headless Chrome context, no DOM restyling or state substitution",
+  "sample_author": "Codex, original SVG still-life illustration authored for this task; no generative service or external media",
+  "sample_notice": "Product inputs, not PixelFlow-generated artwork",
+  "sample_dimensions": {
+    "square": [
+      1200,
+      1200
+    ],
+    "wide": [
+      1600,
+      900
+    ],
+    "tall": [
+      900,
+      1200
+    ]
+  },
+  "page_image_count": 9,
+  "images": [
+    {
+      "path": "pixelflow-detail-process-desktop.webp",
+      "width": 1920,
+      "height": 1200,
+      "format": "webp",
+      "encoding": "lossless VP8L",
+      "sha256": "ed6d52027ac2a7f13a96153403df7b13d0a0670fe26a3b527e3e9205447ff9e2",
+      "alt_zh": "PixelFlow 将三张自制静物插画转为 JPG，显示所选规则、尺寸、完成状态与打包入口",
+      "module": "process",
+      "source_type": "real running committed application screenshot",
+      "source": "sources/process-desktop.png",
+      "crop_css_px": [
+        160,
+        190,
+        1120,
+        700
+      ],
+      "capture_dpr": 2,
+      "code_sha": "530bdd6ebf3e42db353838db6eb5cfeabf004ece",
+      "contains_marketing_overlay": false
+    },
+    {
+      "path": "pixelflow-detail-process-mobile.webp",
+      "width": 900,
+      "height": 1200,
+      "format": "webp",
+      "encoding": "lossless VP8L",
+      "sha256": "69cd75d6e0deb47e06d54a0bbe9aa5ac2959c1eab75d84454aa7896c152ce36c",
+      "alt_zh": "PixelFlow 队列真实局部，显示一张静物样图的文件名、尺寸、转 JPG 完成状态和单张下载入口",
+      "module": "process",
+      "source_type": "real running committed application screenshot",
+      "source": "sources/process-core.png",
+      "crop_css_px": "whole saved element capture",
+      "capture_dpr": 2,
+      "code_sha": "530bdd6ebf3e42db353838db6eb5cfeabf004ece",
+      "contains_marketing_overlay": false
+    },
+    {
+      "path": "pixelflow-detail-find-desktop.webp",
+      "width": 1600,
+      "height": 1200,
+      "format": "webp",
+      "encoding": "lossless VP8L",
+      "sha256": "cf64b757e6852c16e75206404c4c3ed7254242994f0e2246a1dfd7817c6dc8df",
+      "alt_zh": "PixelFlow 检索静物项目目录，两项找到并显示相对路径，一项未找到",
+      "module": "find",
+      "source_type": "real running committed application screenshot",
+      "source": "sources/find-desktop.png",
+      "crop_css_px": [
+        40,
+        600,
+        1120,
+        740
+      ],
+      "capture_dpr": 2,
+      "code_sha": "530bdd6ebf3e42db353838db6eb5cfeabf004ece",
+      "contains_marketing_overlay": false
+    },
+    {
+      "path": "pixelflow-detail-find-mobile.webp",
+      "width": 900,
+      "height": 1200,
+      "format": "webp",
+      "encoding": "lossless VP8L",
+      "sha256": "d3dce28409e18117fe28a9f9d079af63798b65396f246c78bfb454d61db2c11f",
+      "alt_zh": "PixelFlow 匹配结果局部，显示三项图名、找到项的路径及缺失项状态",
+      "module": "find",
+      "source_type": "real running committed application screenshot",
+      "source": "sources/find-results.png",
+      "crop_css_px": [
+        0,
+        100,
+        296,
+        525
+      ],
+      "capture_dpr": 2,
+      "code_sha": "530bdd6ebf3e42db353838db6eb5cfeabf004ece",
+      "contains_marketing_overlay": false
+    },
+    {
+      "path": "pixelflow-detail-ratios-desktop.webp",
+      "width": 1600,
+      "height": 1200,
+      "format": "webp",
+      "encoding": "lossless VP8L",
+      "sha256": "4cc5dcffa8ef8c3380eac81aa7b83b9b253749be9a25a09503d0529caec5c3b4",
+      "alt_zh": "PixelFlow 实际将三张静物样图分为 1:1、16:9、3:4 三组，显示尺寸、数量及下载入口",
+      "module": "ratios",
+      "source_type": "real running committed application screenshot",
+      "source": "sources/ratios-desktop.png",
+      "crop_css_px": [
+        40,
+        440,
+        1120,
+        480
+      ],
+      "capture_dpr": 2,
+      "code_sha": "530bdd6ebf3e42db353838db6eb5cfeabf004ece",
+      "contains_marketing_overlay": false
+    },
+    {
+      "path": "pixelflow-detail-ratios-mobile.webp",
+      "width": 900,
+      "height": 1200,
+      "format": "webp",
+      "encoding": "lossless VP8L",
+      "sha256": "8203c7cc9fa131d114c57164614c2b58a4dfeb60b1f618357603194f1f0109d6",
+      "alt_zh": "PixelFlow 真实窄屏画幅分组，三组均展开显示图名、比例、数量与尺寸",
+      "module": "ratios",
+      "source_type": "real running committed application screenshot",
+      "source": "sources/ratios-groups.png",
+      "crop_css_px": [
+        0,
+        0,
+        296,
+        387
+      ],
+      "capture_dpr": 2,
+      "code_sha": "530bdd6ebf3e42db353838db6eb5cfeabf004ece",
+      "contains_marketing_overlay": false
+    },
+    {
+      "path": "pixelflow-detail-folders-desktop.webp",
+      "width": 1600,
+      "height": 1200,
+      "format": "webp",
+      "encoding": "lossless VP8L",
+      "sha256": "d786c875e53234e603750a551ecf68f9bd535d7ff7690c5413d50a76e21b9ebb",
+      "alt_zh": "PixelFlow 根据静物项目命名设置预览三个待创建目录，尚未执行创建",
+      "module": "folders",
+      "source_type": "real running committed application screenshot",
+      "source": "sources/folders-desktop.png",
+      "crop_css_px": [
+        40,
+        240,
+        1120,
+        940
+      ],
+      "capture_dpr": 2,
+      "code_sha": "530bdd6ebf3e42db353838db6eb5cfeabf004ece",
+      "contains_marketing_overlay": false
+    },
+    {
+      "path": "pixelflow-detail-folders-input-mobile.webp",
+      "width": 900,
+      "height": 750,
+      "format": "webp",
+      "encoding": "lossless VP8L",
+      "sha256": "84d51c09887a8996f3cfed6ef08c4e8e2339d31cbc9230259ef3b979c79e4fc8",
+      "alt_zh": "PixelFlow 真实桌面输入局部，显示方图横图竖图原名、静物项目前缀及自动编号设置",
+      "module": "folders",
+      "source_type": "real running committed application screenshot",
+      "source": "sources/folders-desktop.png",
+      "crop_css_px": [
+        60,
+        350,
+        560,
+        467
+      ],
+      "capture_dpr": 2,
+      "code_sha": "530bdd6ebf3e42db353838db6eb5cfeabf004ece",
+      "contains_marketing_overlay": false
+    },
+    {
+      "path": "pixelflow-detail-folders-preview-mobile.webp",
+      "width": 900,
+      "height": 1050,
+      "format": "webp",
+      "encoding": "lossless VP8L",
+      "sha256": "f039be652cb008f3e637dacf3693f380eec2b00e673cff45c9ee280f99d6ffa7",
+      "alt_zh": "PixelFlow 窄屏目录预览横向滚动到最终名称列，显示与输入对应的名称及尚未执行的创建入口",
+      "module": "folders",
+      "source_type": "real running committed application screenshot",
+      "source": "sources/folders-preview.png",
+      "crop_css_px": [
+        0,
+        0,
+        296,
+        396
+      ],
+      "capture_dpr": 2,
+      "code_sha": "530bdd6ebf3e42db353838db6eb5cfeabf004ece",
+      "contains_marketing_overlay": false
+    }
+  ],
+  "outputs": [
+    {
+      "path": "outputs/pf-still-square_1比1_resized.jpg",
+      "bytes": 41717,
+      "width": 1200,
+      "height": 1200,
+      "sha256": "ea9d932dd1a16683cbe2f2286a0597f3f4a3c3dbe1bea804561531ea43774ebd"
+    },
+    {
+      "path": "outputs/pf-still-wide_16比9_resized.jpg",
+      "bytes": 43665,
+      "width": 1600,
+      "height": 900,
+      "sha256": "36a535e702b5065b91d7791ae2a7b3b6342adf876e60a8e80fcfd521121d9bc3"
+    },
+    {
+      "path": "outputs/pf-still-tall_3比4_resized.jpg",
+      "bytes": 37621,
+      "width": 900,
+      "height": 1200,
+      "sha256": "b4390b823d68ffb29eb5398838790876d01f33afe3cb06a5d561557481ad10e3"
+    }
+  ],
+  "resources": [
+    {
+      "path": "capture.cjs",
+      "bytes": 4957,
+      "sha256": "2ca30a3639572ed03862e34cc6735b933c6edb35c37780e33e0adc8d61924051"
+    },
+    {
+      "path": "make-samples.cjs",
+      "bytes": 2615,
+      "sha256": "af2304b3f38cc6196e9ced1cdb9d1adbe5d20b93e60216d9d56a55e9b272e9ee"
+    },
+    {
+      "path": "outputs/converted.zip",
+      "bytes": 88257,
+      "sha256": "761ef09f65430cadb7d19c51a552b091c6260dcf59616151c88516182e8744b3"
+    },
+    {
+      "path": "outputs/pf-still-square_1比1_resized.jpg",
+      "bytes": 41717,
+      "sha256": "ea9d932dd1a16683cbe2f2286a0597f3f4a3c3dbe1bea804561531ea43774ebd"
+    },
+    {
+      "path": "outputs/pf-still-tall_3比4_resized.jpg",
+      "bytes": 37621,
+      "sha256": "b4390b823d68ffb29eb5398838790876d01f33afe3cb06a5d561557481ad10e3"
+    },
+    {
+      "path": "outputs/pf-still-wide_16比9_resized.jpg",
+      "bytes": 43665,
+      "sha256": "36a535e702b5065b91d7791ae2a7b3b6342adf876e60a8e80fcfd521121d9bc3"
+    },
+    {
+      "path": "qa/contact.png",
+      "bytes": 510917,
+      "sha256": "4ae8145b0db7e66b9df69bac3ce9c715285e2c9bdb8db3554982569fba61f34e"
+    },
+    {
+      "path": "qa/find-mobile-288.png",
+      "bytes": 25556,
+      "sha256": "dd468236c1becee16f1c5b9061fae52ef0fb91f07c1bf61da6b24d938d1d23a6"
+    },
+    {
+      "path": "qa/find-mobile-358.png",
+      "bytes": 37581,
+      "sha256": "ff9b730b37b520fdb47076183081ccb8a55e3628a6b3930f24213e6a6b19686f"
+    },
+    {
+      "path": "qa/folders-input-mobile-288.png",
+      "bytes": 8152,
+      "sha256": "7a0c63413f8c5d7fab37fead7634523a134fcb04734670e819a5f858507ac251"
+    },
+    {
+      "path": "qa/folders-input-mobile-358.png",
+      "bytes": 12697,
+      "sha256": "41ef5a50e067a4d2a9b41ff952b04339e2f03cff2f3b4f6d1a55b8891607f016"
+    },
+    {
+      "path": "qa/folders-preview-mobile-288.png",
+      "bytes": 25297,
+      "sha256": "e0857f04fd354586810b490a227158d08c54eeb868eca9184af17f4fe235876b"
+    },
+    {
+      "path": "qa/folders-preview-mobile-358.png",
+      "bytes": 37362,
+      "sha256": "ac12068b10baf41103bdaa48e3921b8293da63e4388caa63baea548bde1f0c82"
+    },
+    {
+      "path": "qa/process-mobile-288.png",
+      "bytes": 32976,
+      "sha256": "64d6af5786d381cd542a1024a3771cb672444bb01e6a59436213d17e058e565f"
+    },
+    {
+      "path": "qa/process-mobile-358.png",
+      "bytes": 47853,
+      "sha256": "9e407ee3d1fc0a746a05af3f18d4f2bed48b0ddc96474a4cf4449b38e2d24ae5"
+    },
+    {
+      "path": "qa/ratios-mobile-288.png",
+      "bytes": 38732,
+      "sha256": "3908fb450a9541f1d1c6925f44857d458efcfa4977c265b7bb5244f583c6890d"
+    },
+    {
+      "path": "qa/ratios-mobile-358.png",
+      "bytes": 56784,
+      "sha256": "fc80769b776f26c123fbe905e566d05b5d2570163734c176339af308896ce11d"
+    },
+    {
+      "path": "README.md",
+      "bytes": 6631,
+      "sha256": "a649316a2e7d9a50489c73dfb67a1c9da8e47ac7a4251253780778d0882dbe2b"
+    },
+    {
+      "path": "render.cjs",
+      "bytes": 1288,
+      "sha256": "fd2ebc82c811e19fbfe07ee300fa048d5028a434f7ac0bb49a7873e36926b924"
+    },
+    {
+      "path": "samples/pf-still-square.png",
+      "bytes": 99928,
+      "sha256": "9fa42a11f66258e89e398e10dc88b827e6e5a16be2457f3408413ed9f31360e6"
+    },
+    {
+      "path": "samples/pf-still-square.svg",
+      "bytes": 1930,
+      "sha256": "8ebea630443af34e467685421323abdcea1bf4d6b4980ead5612838214807ec8"
+    },
+    {
+      "path": "samples/pf-still-tall.png",
+      "bytes": 81481,
+      "sha256": "653fd42cc69ec65350a186f2b1cc297d2b3b1bcf24109a37d236ca294329bb2e"
+    },
+    {
+      "path": "samples/pf-still-tall.svg",
+      "bytes": 1929,
+      "sha256": "258e3b1eca8d9fb8d50b66d9df650338aa1af6ecad137a8241c9b612677003f7"
+    },
+    {
+      "path": "samples/pf-still-wide.png",
+      "bytes": 105510,
+      "sha256": "e9a56e5d1688447a1b8fc097d97f590975a34eacdf42f0db1b823c7598fc3392"
+    },
+    {
+      "path": "samples/pf-still-wide.svg",
+      "bytes": 1929,
+      "sha256": "4603627f37d2eb9af65c0e2170cf06cece624c1fd6ed85d7de5a0a021bfb1186"
+    },
+    {
+      "path": "samples/静物项目/pf-still-square.png",
+      "bytes": 99928,
+      "sha256": "9fa42a11f66258e89e398e10dc88b827e6e5a16be2457f3408413ed9f31360e6"
+    },
+    {
+      "path": "samples/静物项目/pf-still-wide.png",
+      "bytes": 105510,
+      "sha256": "e9a56e5d1688447a1b8fc097d97f590975a34eacdf42f0db1b823c7598fc3392"
+    },
+    {
+      "path": "sources/find-desktop.png",
+      "bytes": 431525,
+      "sha256": "4a320a99bffc4574e0439727ac9c770812d409ec8df92b0acb3ad8f5148f6341"
+    },
+    {
+      "path": "sources/find-mobile.png",
+      "bytes": 380528,
+      "sha256": "cdf5c9f917d984f1cc9db116eb7756afbd7cc0554756d9dcf744399afa4c83e1"
+    },
+    {
+      "path": "sources/find-results.png",
+      "bytes": 88403,
+      "sha256": "c0f11c8bc8ff05861c1b2829778d247500e601d23cb6c63ebb8c409fa7cd34bd"
+    },
+    {
+      "path": "sources/folder-input-values.json",
+      "bytes": 89,
+      "sha256": "341dfcfd996b4616409ac94764b0b53292da9dfd8b883826349af270ff6cca32"
+    },
+    {
+      "path": "sources/folders-desktop.png",
+      "bytes": 312186,
+      "sha256": "7a05115b263e6ccc2c994280c6a19caa5cd2b01801a2012f2de6a0bd59f43471"
+    },
+    {
+      "path": "sources/folders-mobile.png",
+      "bytes": 251174,
+      "sha256": "757ce7132eb9bef6e181939095e02f9e200533c96332c71eb47b820466a24379"
+    },
+    {
+      "path": "sources/folders-preview.png",
+      "bytes": 58244,
+      "sha256": "5b75c250d0c1e040e8b826cfe8f917e0b0acd3931ba58a42023ff127037f7918"
+    },
+    {
+      "path": "sources/process-core.png",
+      "bytes": 63051,
+      "sha256": "3dde5afa667c2ca121c9c72c8ddcd178446879909105636f3c7b841841081dd8"
+    },
+    {
+      "path": "sources/process-desktop.png",
+      "bytes": 515620,
+      "sha256": "7c78ec7799480e9642f0ae483a5eda569cee7b298ed076b935b2035614576d4b"
+    },
+    {
+      "path": "sources/process-mobile.png",
+      "bytes": 315378,
+      "sha256": "f7346723842f56cf72e63062458588c86ad9cb9ba7404b3a83d0c036ce4df6b4"
+    },
+    {
+      "path": "sources/process-queue.png",
+      "bytes": 141948,
+      "sha256": "4a2114a750194053b5fb74c0856651c7c7a0d8596902fce2e81fbd3787622516"
+    },
+    {
+      "path": "sources/ratios-desktop.png",
+      "bytes": 353960,
+      "sha256": "0ccccb0b5201da94c0e151c02e2aae47953425978cb1f462deb9781f7f67d54c"
+    },
+    {
+      "path": "sources/ratios-groups.png",
+      "bytes": 72188,
+      "sha256": "ddf7add95dd912377d05d14b3c19c2c35bfdd758f1320ef453a6a0567f187096"
+    },
+    {
+      "path": "sources/ratios-mobile.png",
+      "bytes": 269116,
+      "sha256": "31fb1fc22746ae57df5c45ca70e40e44304a074d27e9b24627888677a11e182d"
+    },
+    {
+      "path": "sources/run-report.json",
+      "bytes": 855,
+      "sha256": "23c65d76705e1c02ca66eb054af323b4ac281f10577e7e464cd70ded528094a0"
+    },
+    {
+      "path": "verify.cjs",
+      "bytes": 5399,
+      "sha256": "dd8e4fcaac95ad3fd4b15a8c036c3fda73ab266c79a4b9b09724b014fa203f66"
+    }
+  ],
+  "checks": {
+    "sizes": true,
+    "lossless": true,
+    "actual_jpeg_outputs": 3,
+    "page_errors": [],
+    "found": 2,
+    "missing": 1,
+    "folder_creation_executed": false,
+    "target_width_proofs": [
+      288,
+      358
+    ],
+    "full_C_acceptance": false
+  },
+  "unresolved": [
+    "Locked product has no thumbnail images or expand/collapse control in ratio groups. Both ratio images preserve the actual expanded text groups; C thumbnail/collapse composition cannot be captured.",
+    "Process mobile shows one complete actual queue result and single-file download; the separate selected-rule panel and global ZIP control cannot fit the same contiguous readable core crop. Desktop proves conversion-only rule and ZIP.",
+    "Folder preview mobile needs real horizontal scrolling to the final-name column because the locked table retains a 1120px minimum width. Input mobile uses a labeled desktop crop to retain original names and active settings.",
+    "At 288/358 CSS px display widths, some filenames, paths and setting labels remain below the approximate 14px target. QA proofs are retained; these are not claimed to pass full readability acceptance."
+  ],
+  "boundaries": [
+    "No business/deployment/account changes",
+    "No uncommitted finder JPG flow captured",
+    "No real shared-folder permissions or production database checked",
+    "Folder preview only, target not chosen and creation not performed",
+    "Responsive desktop browser crops are not mobile device compatibility certification"
+  ]
+}
