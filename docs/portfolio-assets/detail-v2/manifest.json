@@ -4,8 +4,8 @@
   "repository": "https://github.com/liaoyiming222-art/image-pixel-batch-reducer-lym",
   "branch": "codex/detail-v2-20261104-pixelflow",
   "capture_code_sha": "530bdd6ebf3e42db353838db6eb5cfeabf004ece",
-  "asset_parent_sha": "df191acb1dd14be2428201e100bfa31094d9bd0c",
-  "capture_environment": "git archive of locked SHA, isolated directory, fresh headless Chrome context, no DOM restyling or state substitution",
+  "asset_parent_sha": "89a31514b87ef5e7a28d1894d62760ca74d5595f",
+  "capture_environment": "Same locked archive; original still-life inputs; fresh headless Chrome process/context; native 100% zoom; 300/270 CSS px viewport; DPR3; no DOM/CSS/text substitution",
   "sample_author": "Codex, original SVG still-life illustration authored for this task; no generative service or external media",
   "sample_notice": "Product inputs, not PixelFlow-generated artwork",
   "sample_dimensions": {
@@ -22,7 +22,7 @@
       1200
     ]
   },
-  "page_image_count": 9,
+  "page_image_count": 11,
   "images": [
     {
       "path": "pixelflow-detail-process-desktop.webp",
@@ -43,23 +43,8 @@
       ],
       "capture_dpr": 2,
       "code_sha": "530bdd6ebf3e42db353838db6eb5cfeabf004ece",
-      "contains_marketing_overlay": false
-    },
-    {
-      "path": "pixelflow-detail-process-mobile.webp",
-      "width": 900,
-      "height": 1200,
-      "format": "webp",
-      "encoding": "lossless VP8L",
-      "sha256": "69cd75d6e0deb47e06d54a0bbe9aa5ac2959c1eab75d84454aa7896c152ce36c",
-      "alt_zh": "PixelFlow 队列真实局部，显示一张静物样图的文件名、尺寸、转 JPG 完成状态和单张下载入口",
-      "module": "process",
-      "source_type": "real running committed application screenshot",
-      "source": "sources/process-core.png",
-      "crop_css_px": "whole saved element capture",
-      "capture_dpr": 2,
-      "code_sha": "530bdd6ebf3e42db353838db6eb5cfeabf004ece",
-      "contains_marketing_overlay": false
+      "contains_marketing_overlay": false,
+      "retained_from_asset_commit": "89a31514b87ef5e7a28d1894d62760ca74d5595f"
     },
     {
       "path": "pixelflow-detail-find-desktop.webp",
@@ -80,28 +65,8 @@
       ],
       "capture_dpr": 2,
       "code_sha": "530bdd6ebf3e42db353838db6eb5cfeabf004ece",
-      "contains_marketing_overlay": false
-    },
-    {
-      "path": "pixelflow-detail-find-mobile.webp",
-      "width": 900,
-      "height": 1200,
-      "format": "webp",
-      "encoding": "lossless VP8L",
-      "sha256": "d3dce28409e18117fe28a9f9d079af63798b65396f246c78bfb454d61db2c11f",
-      "alt_zh": "PixelFlow 匹配结果局部，显示三项图名、找到项的路径及缺失项状态",
-      "module": "find",
-      "source_type": "real running committed application screenshot",
-      "source": "sources/find-results.png",
-      "crop_css_px": [
-        0,
-        100,
-        296,
-        525
-      ],
-      "capture_dpr": 2,
-      "code_sha": "530bdd6ebf3e42db353838db6eb5cfeabf004ece",
-      "contains_marketing_overlay": false
+      "contains_marketing_overlay": false,
+      "retained_from_asset_commit": "89a31514b87ef5e7a28d1894d62760ca74d5595f"
     },
     {
       "path": "pixelflow-detail-ratios-desktop.webp",
@@ -122,28 +87,8 @@
       ],
       "capture_dpr": 2,
       "code_sha": "530bdd6ebf3e42db353838db6eb5cfeabf004ece",
-      "contains_marketing_overlay": false
-    },
-    {
-      "path": "pixelflow-detail-ratios-mobile.webp",
-      "width": 900,
-      "height": 1200,
-      "format": "webp",
-      "encoding": "lossless VP8L",
-      "sha256": "8203c7cc9fa131d114c57164614c2b58a4dfeb60b1f618357603194f1f0109d6",
-      "alt_zh": "PixelFlow 真实窄屏画幅分组，三组均展开显示图名、比例、数量与尺寸",
-      "module": "ratios",
-      "source_type": "real running committed application screenshot",
-      "source": "sources/ratios-groups.png",
-      "crop_css_px": [
-        0,
-        0,
-        296,
-        387
-      ],
-      "capture_dpr": 2,
-      "code_sha": "530bdd6ebf3e42db353838db6eb5cfeabf004ece",
-      "contains_marketing_overlay": false
+      "contains_marketing_overlay": false,
+      "retained_from_asset_commit": "89a31514b87ef5e7a28d1894d62760ca74d5595f"
     },
     {
       "path": "pixelflow-detail-folders-desktop.webp",
@@ -164,49 +109,190 @@
       ],
       "capture_dpr": 2,
       "code_sha": "530bdd6ebf3e42db353838db6eb5cfeabf004ece",
-      "contains_marketing_overlay": false
+      "contains_marketing_overlay": false,
+      "retained_from_asset_commit": "89a31514b87ef5e7a28d1894d62760ca74d5595f"
+    },
+    {
+      "path": "pixelflow-detail-process-mobile.webp",
+      "width": 900,
+      "height": 710,
+      "format": "webp",
+      "encoding": "lossless VP8L",
+      "sha256": "24bdb895de6459e53c330ef2a1161cbfc9db6a683c3d120f08c69b10a7bd8af9",
+      "alt_zh": "PixelFlow 单张实际 JPG 转换结果、完整文件名、尺寸与完成状态",
+      "module": "process",
+      "source_type": "real locked running application; continuous core crop",
+      "source": "sources/r1/process-mobile.png",
+      "selector": ".task-main:first",
+      "crop_css_px": {
+        "x": 83,
+        "y": 1010.09375,
+        "width": 166,
+        "height": 131
+      },
+      "capture_dpr": 3,
+      "native_zoom": 1,
+      "code_sha": "530bdd6ebf3e42db353838db6eb5cfeabf004ece",
+      "contains_marketing_overlay": false,
+      "key_text_css_px_at_capture": 9,
+      "key_text_css_px_at_288": 15.61,
+      "key_text_css_px_at_358": 19.41
+    },
+    {
+      "path": "pixelflow-detail-process-rule-mobile.webp",
+      "width": 900,
+      "height": 415,
+      "format": "webp",
+      "encoding": "lossless VP8L",
+      "sha256": "c6ebdf7eecbdfff9acd2ee241208c03249ca2d531874db7660d1e463ffc1792d",
+      "alt_zh": "PixelFlow 实际选中的仅转格式规则",
+      "module": "process",
+      "source_type": "real locked running application; continuous core crop",
+      "source": "sources/r1/process-rule-mobile.png",
+      "selector": ".mode-field label + real active button core",
+      "crop_css_px": {
+        "x": 26,
+        "y": 375.09375,
+        "width": 130,
+        "height": 60
+      },
+      "capture_dpr": 3,
+      "native_zoom": 1,
+      "code_sha": "530bdd6ebf3e42db353838db6eb5cfeabf004ece",
+      "contains_marketing_overlay": false,
+      "key_text_css_px_at_capture": 12,
+      "key_text_css_px_at_288": 26.58,
+      "key_text_css_px_at_358": 33.05
+    },
+    {
+      "path": "pixelflow-detail-process-download-mobile.webp",
+      "width": 900,
+      "height": 302,
+      "format": "webp",
+      "encoding": "lossless VP8L",
+      "sha256": "fedae8381d24a33b5dfd1b2ea48f5a198d31c8e7097b05c026012e408d404db3",
+      "alt_zh": "PixelFlow 转换完成后的下载全部入口，实际已取得 ZIP",
+      "module": "process",
+      "source_type": "real locked running application; continuous core crop",
+      "source": "sources/r1/process-download-mobile.png",
+      "selector": "button:下载全部",
+      "crop_css_px": {
+        "x": 18,
+        "y": 2137.5,
+        "width": 128,
+        "height": 43
+      },
+      "capture_dpr": 3,
+      "native_zoom": 1,
+      "code_sha": "530bdd6ebf3e42db353838db6eb5cfeabf004ece",
+      "contains_marketing_overlay": false,
+      "key_text_css_px_at_capture": 12,
+      "key_text_css_px_at_288": 27,
+      "key_text_css_px_at_358": 33.56
+    },
+    {
+      "path": "pixelflow-detail-ratios-mobile.webp",
+      "width": 900,
+      "height": 1100,
+      "format": "webp",
+      "encoding": "lossless VP8L",
+      "sha256": "17e6bcebfb9286b7112da8234704f4ed2a24a436f18e594e85f077a7703c998c",
+      "alt_zh": "PixelFlow 三种真实文字比例组、数量及完整图片尺寸",
+      "module": "ratios",
+      "source_type": "real locked running application; continuous core crop",
+      "source": "sources/r1/ratios-mobile.png",
+      "selector": ".ratio-group-grid (real continuous groups)",
+      "crop_css_px": {
+        "x": 17,
+        "y": 669.09375,
+        "width": 225,
+        "height": 275
+      },
+      "capture_dpr": 3,
+      "native_zoom": 1,
+      "code_sha": "530bdd6ebf3e42db353838db6eb5cfeabf004ece",
+      "contains_marketing_overlay": false,
+      "key_text_css_px_at_capture": 11,
+      "key_text_css_px_at_288": 14.08,
+      "key_text_css_px_at_358": 17.5
+    },
+    {
+      "path": "pixelflow-detail-find-mobile.webp",
+      "width": 900,
+      "height": 1530,
+      "format": "webp",
+      "encoding": "lossless VP8L",
+      "sha256": "0019593d0f36a9ac318c25578d1b0d9c5955626b53e1c97323b92c40100cf44c",
+      "alt_zh": "PixelFlow 两项找到和一项未找到的完整图名、相对路径及状态",
+      "module": "find",
+      "source_type": "real locked running application; continuous core crop",
+      "source": "sources/r1/find-mobile.png",
+      "selector": ".finder-table continuous three rows, text/path/status core",
+      "crop_css_px": {
+        "x": 53,
+        "y": 1562.734375,
+        "width": 210,
+        "height": 357.78125
+      },
+      "capture_dpr": 3,
+      "native_zoom": 1,
+      "code_sha": "530bdd6ebf3e42db353838db6eb5cfeabf004ece",
+      "contains_marketing_overlay": false,
+      "key_text_css_px_at_capture": 11,
+      "key_text_css_px_at_288": 15.09,
+      "key_text_css_px_at_358": 18.75
     },
     {
       "path": "pixelflow-detail-folders-input-mobile.webp",
       "width": 900,
-      "height": 750,
+      "height": 2357,
       "format": "webp",
       "encoding": "lossless VP8L",
-      "sha256": "84d51c09887a8996f3cfed6ef08c4e8e2339d31cbc9230259ef3b979c79e4fc8",
-      "alt_zh": "PixelFlow 真实桌面输入局部，显示方图横图竖图原名、静物项目前缀及自动编号设置",
+      "sha256": "9b7db033042f289c07c4641be725e663520d1e80024fdd1446b0f5740a3ae79b",
+      "alt_zh": "PixelFlow 真实窄布局的原名、静物项目前缀和启用的编号设置",
       "module": "folders",
-      "source_type": "real running committed application screenshot",
-      "source": "sources/folders-desktop.png",
-      "crop_css_px": [
-        60,
-        350,
-        560,
-        467
-      ],
-      "capture_dpr": 2,
+      "source_type": "real locked running application; continuous core crop",
+      "source": "sources/r1/folders-input-mobile.png",
+      "selector": ".normal-folder-page textarea through .normal-rules, continuous core",
+      "crop_css_px": {
+        "x": 5,
+        "y": 558.890625,
+        "width": 215,
+        "height": 563
+      },
+      "capture_dpr": 3,
+      "native_zoom": 1,
       "code_sha": "530bdd6ebf3e42db353838db6eb5cfeabf004ece",
-      "contains_marketing_overlay": false
+      "contains_marketing_overlay": false,
+      "key_text_css_px_at_capture": 12,
+      "key_text_css_px_at_288": 16.07,
+      "key_text_css_px_at_358": 19.98
     },
     {
       "path": "pixelflow-detail-folders-preview-mobile.webp",
       "width": 900,
-      "height": 1050,
+      "height": 1553,
       "format": "webp",
       "encoding": "lossless VP8L",
-      "sha256": "f039be652cb008f3e637dacf3693f380eec2b00e673cff45c9ee280f99d6ffa7",
-      "alt_zh": "PixelFlow 窄屏目录预览横向滚动到最终名称列，显示与输入对应的名称及尚未执行的创建入口",
+      "sha256": "fc8246da2eb16090463db1e6afed9500c756210f4a6fb848b99bf06bb0e6a37f",
+      "alt_zh": "PixelFlow 真实横滚后的最终目录名称与目标目录和创建入口，尚未创建",
       "module": "folders",
-      "source_type": "real running committed application screenshot",
-      "source": "sources/folders-preview.png",
-      "crop_css_px": [
-        0,
-        0,
-        296,
-        396
-      ],
-      "capture_dpr": 2,
+      "source_type": "real locked running application; continuous core crop",
+      "source": "sources/r1/folders-preview-mobile.png",
+      "selector": ".folder-card preview; real horizontal scrollLeft=380",
+      "crop_css_px": {
+        "x": 4,
+        "y": 1206.890625,
+        "width": 215,
+        "height": 371
+      },
+      "capture_dpr": 3,
+      "native_zoom": 1,
       "code_sha": "530bdd6ebf3e42db353838db6eb5cfeabf004ece",
-      "contains_marketing_overlay": false
+      "contains_marketing_overlay": false,
+      "key_text_css_px_at_capture": 12,
+      "key_text_css_px_at_288": 16.07,
+      "key_text_css_px_at_358": 19.98
     }
   ],
   "outputs": [
@@ -215,33 +301,46 @@
       "bytes": 41717,
       "width": 1200,
       "height": 1200,
-      "sha256": "ea9d932dd1a16683cbe2f2286a0597f3f4a3c3dbe1bea804561531ea43774ebd"
+      "sha256": "ea9d932dd1a16683cbe2f2286a0597f3f4a3c3dbe1bea804561531ea43774ebd",
+      "r1_verified": true
     },
     {
       "path": "outputs/pf-still-wide_16比9_resized.jpg",
       "bytes": 43665,
       "width": 1600,
       "height": 900,
-      "sha256": "36a535e702b5065b91d7791ae2a7b3b6342adf876e60a8e80fcfd521121d9bc3"
+      "sha256": "36a535e702b5065b91d7791ae2a7b3b6342adf876e60a8e80fcfd521121d9bc3",
+      "r1_verified": true
     },
     {
       "path": "outputs/pf-still-tall_3比4_resized.jpg",
       "bytes": 37621,
       "width": 900,
       "height": 1200,
-      "sha256": "b4390b823d68ffb29eb5398838790876d01f33afe3cb06a5d561557481ad10e3"
+      "sha256": "b4390b823d68ffb29eb5398838790876d01f33afe3cb06a5d561557481ad10e3",
+      "r1_verified": true
     }
   ],
   "resources": [
     {
+      "path": "capture-r1.cjs",
+      "bytes": 5470,
+      "sha256": "96af14d3f6ca3eb6c014656eba7e529204dde6531a13049f48ac60377205d755"
+    },
+    {
       "path": "capture.cjs",
-      "bytes": 4957,
-      "sha256": "2ca30a3639572ed03862e34cc6735b933c6edb35c37780e33e0adc8d61924051"
+      "bytes": 114,
+      "sha256": "6104c1641b4479d8f1971015c850fa778e8472662ff9e835a35865d71f35d52b"
     },
     {
       "path": "make-samples.cjs",
       "bytes": 2615,
       "sha256": "af2304b3f38cc6196e9ced1cdb9d1adbe5d20b93e60216d9d56a55e9b272e9ee"
+    },
+    {
+      "path": "outputs/converted-r1.zip",
+      "bytes": 88257,
+      "sha256": "73343105aacb1f46a8bcc2826a51e22df003e837310a46572f4554e11a1e3596"
     },
     {
       "path": "outputs/converted.zip",
@@ -265,68 +364,98 @@
     },
     {
       "path": "qa/contact.png",
-      "bytes": 510917,
-      "sha256": "4ae8145b0db7e66b9df69bac3ce9c715285e2c9bdb8db3554982569fba61f34e"
+      "bytes": 269162,
+      "sha256": "567d7865e5eb21fec4b21ab7fd79e6bc2f095970a43c2802a2dbcdddf6d761ce"
     },
     {
       "path": "qa/find-mobile-288.png",
-      "bytes": 25556,
-      "sha256": "dd468236c1becee16f1c5b9061fae52ef0fb91f07c1bf61da6b24d938d1d23a6"
+      "bytes": 34497,
+      "sha256": "bd87b20b97f332182152a03bd6fe89d12eb53fbff79af93b7faf16d65ae3fe77"
     },
     {
       "path": "qa/find-mobile-358.png",
-      "bytes": 37581,
-      "sha256": "ff9b730b37b520fdb47076183081ccb8a55e3628a6b3930f24213e6a6b19686f"
+      "bytes": 49821,
+      "sha256": "2e0d9dddbfcb2990e4fc0c0602757c09b7a55c4e35985d04adb90b94531e0529"
     },
     {
       "path": "qa/folders-input-mobile-288.png",
-      "bytes": 8152,
-      "sha256": "7a0c63413f8c5d7fab37fead7634523a134fcb04734670e819a5f858507ac251"
+      "bytes": 31723,
+      "sha256": "c12361806479566d7b3199adf6fbc0db381be978b03c22e1ff485190ca82ee10"
     },
     {
       "path": "qa/folders-input-mobile-358.png",
-      "bytes": 12697,
-      "sha256": "41ef5a50e067a4d2a9b41ff952b04339e2f03cff2f3b4f6d1a55b8891607f016"
+      "bytes": 46412,
+      "sha256": "6dbf79ce6de5b68b1e110dbfa0722a1198058a8f0ee311e1f00ad30f17cdf603"
     },
     {
       "path": "qa/folders-preview-mobile-288.png",
-      "bytes": 25297,
-      "sha256": "e0857f04fd354586810b490a227158d08c54eeb868eca9184af17f4fe235876b"
+      "bytes": 40776,
+      "sha256": "27d135740ef7b95c1bb35c5ea3a316cd74532507b5c5679a91a1152fa7e86b21"
     },
     {
       "path": "qa/folders-preview-mobile-358.png",
-      "bytes": 37362,
-      "sha256": "ac12068b10baf41103bdaa48e3921b8293da63e4388caa63baea548bde1f0c82"
+      "bytes": 58312,
+      "sha256": "0214c0decb070218270515e9c837656946047254785d9e88024fd68aff22981e"
+    },
+    {
+      "path": "qa/process-download-mobile-288.png",
+      "bytes": 7846,
+      "sha256": "6699273563dd345fb0d1dd84594096964b2a0f489f07d48140625cce350ca50a"
+    },
+    {
+      "path": "qa/process-download-mobile-358.png",
+      "bytes": 11544,
+      "sha256": "830fa75f73c944952dd1bc6e4ad15b2183863b7b786bd893a1ac05bc21085b62"
     },
     {
       "path": "qa/process-mobile-288.png",
-      "bytes": 32976,
-      "sha256": "64d6af5786d381cd542a1024a3771cb672444bb01e6a59436213d17e058e565f"
+      "bytes": 27121,
+      "sha256": "bc6760ea720f61b3b53c2d6d60ab5d8855c6f8f1fac6d422726c78ad5041e31f"
     },
     {
       "path": "qa/process-mobile-358.png",
-      "bytes": 47853,
-      "sha256": "9e407ee3d1fc0a746a05af3f18d4f2bed48b0ddc96474a4cf4449b38e2d24ae5"
+      "bytes": 40392,
+      "sha256": "4bd0f317b30c307590ce7b67d60fe38e8d4cfdbd11c261bade421313e5d1bb07"
+    },
+    {
+      "path": "qa/process-rule-mobile-288.png",
+      "bytes": 9731,
+      "sha256": "dee5a513945b64d8e7ff07d903d2df4224a002c8e730f4ea24c6f56470d91292"
+    },
+    {
+      "path": "qa/process-rule-mobile-358.png",
+      "bytes": 13976,
+      "sha256": "de6feb0d501cff59e60cf75716db7b00de0386e3d515547e84d5a9ad01a9e322"
     },
     {
       "path": "qa/ratios-mobile-288.png",
-      "bytes": 38732,
-      "sha256": "3908fb450a9541f1d1c6925f44857d458efcfa4977c265b7bb5244f583c6890d"
+      "bytes": 26964,
+      "sha256": "022d2dcf479fa9f2dc5c8cc43d86d08fe0d059e2367acbc498de4319aafeed37"
     },
     {
       "path": "qa/ratios-mobile-358.png",
-      "bytes": 56784,
-      "sha256": "fc80769b776f26c123fbe905e566d05b5d2570163734c176339af308896ce11d"
+      "bytes": 39463,
+      "sha256": "147ddc4e2a9a2a2fd7b673178130694222da4490ac9d16b24948dcaac8dc1645"
+    },
+    {
+      "path": "qa/verification-r1.json",
+      "bytes": 1272,
+      "sha256": "ba1f1dd2f3d25025aaa8035e410b80fd8778486181772f1c3970f132b8b4fa11"
     },
     {
       "path": "README.md",
-      "bytes": 6631,
-      "sha256": "a649316a2e7d9a50489c73dfb67a1c9da8e47ac7a4251253780778d0882dbe2b"
+      "bytes": 5150,
+      "sha256": "a508c6ea6996ea6f9f38d80ca4c28b362bfec8ebd9db499f3450a6baf68826ea"
+    },
+    {
+      "path": "render-r1.cjs",
+      "bytes": 583,
+      "sha256": "2505cfb3bae29e4590a0978bad475bd342a71f5bf22ca6b8c17ccc01a0e439e4"
     },
     {
       "path": "render.cjs",
-      "bytes": 1288,
-      "sha256": "fd2ebc82c811e19fbfe07ee300fa048d5028a434f7ac0bb49a7873e36926b924"
+      "bytes": 105,
+      "sha256": "bd37a41fee638200fd857298272c7d87b264d9b4653111dc3c12420317b1fa7c"
     },
     {
       "path": "samples/pf-still-square.png",
@@ -424,6 +553,46 @@
       "sha256": "4a2114a750194053b5fb74c0856651c7c7a0d8596902fce2e81fbd3787622516"
     },
     {
+      "path": "sources/r1/capture.json",
+      "bytes": 14224,
+      "sha256": "2bacba2fff611a5646feda1ed66eb7d5a7b5adf59569bf38ccfa5e7551e55d07"
+    },
+    {
+      "path": "sources/r1/find-mobile.png",
+      "bytes": 63858,
+      "sha256": "4bd766add7a74d624dd0d91200b2a3176b6ba0c353425cda07aadffe5e40e098"
+    },
+    {
+      "path": "sources/r1/folders-input-mobile.png",
+      "bytes": 59495,
+      "sha256": "a8bd2ad31faa552a7329e320875424ba7491428638748e3561b15d79070d971e"
+    },
+    {
+      "path": "sources/r1/folders-preview-mobile.png",
+      "bytes": 76700,
+      "sha256": "3e974cdc5c9b75cd1c616b03a7f0cbda15c09e057ac13e4b630e4536879402d0"
+    },
+    {
+      "path": "sources/r1/process-download-mobile.png",
+      "bytes": 6858,
+      "sha256": "33429b6224ca5f5bc6819cd17ffdd84f11df4385df4988d4657cb786f8002b1d"
+    },
+    {
+      "path": "sources/r1/process-mobile.png",
+      "bytes": 42175,
+      "sha256": "529fb3d655bb3242a5623840cbac856e816a2e1141e977451ce4e94661fa4b09"
+    },
+    {
+      "path": "sources/r1/process-rule-mobile.png",
+      "bytes": 9861,
+      "sha256": "16b3ea6d7bf385ba8f62ba5eb2c4996778954e06b8ba6d972de27545b5cb0a08"
+    },
+    {
+      "path": "sources/r1/ratios-mobile.png",
+      "bytes": 56423,
+      "sha256": "1e4a9bcdf0997944ba44fa0c1781a2c95e9062b48f27ccc9728cca8e8549611f"
+    },
+    {
       "path": "sources/ratios-desktop.png",
       "bytes": 353960,
       "sha256": "0ccccb0b5201da94c0e151c02e2aae47953425978cb1f462deb9781f7f67d54c"
@@ -445,8 +614,8 @@
     },
     {
       "path": "verify.cjs",
-      "bytes": 5399,
-      "sha256": "dd8e4fcaac95ad3fd4b15a8c036c3fda73ab266c79a4b9b09724b014fa203f66"
+      "bytes": 5631,
+      "sha256": "692de980201bd11e4385ecc90b80ae0d41a4476fb4000d4ad101c8fef1213728"
     }
   ],
   "checks": {
@@ -461,19 +630,30 @@
       288,
       358
     ],
-    "full_C_acceptance": false
+    "full_C_acceptance": "r1 producer checks passed; coordinator visual/page review pending",
+    "natural_mobile_ratios": true,
+    "desktop_hashes_unchanged": true,
+    "key_text_approx_14px_at_288": true
   },
-  "unresolved": [
-    "Locked product has no thumbnail images or expand/collapse control in ratio groups. Both ratio images preserve the actual expanded text groups; C thumbnail/collapse composition cannot be captured.",
-    "Process mobile shows one complete actual queue result and single-file download; the separate selected-rule panel and global ZIP control cannot fit the same contiguous readable core crop. Desktop proves conversion-only rule and ZIP.",
-    "Folder preview mobile needs real horizontal scrolling to the final-name column because the locked table retains a 1120px minimum width. Input mobile uses a labeled desktop crop to retain original names and active settings.",
-    "At 288/358 CSS px display widths, some filenames, paths and setting labels remain below the approximate 14px target. QA proofs are retained; these are not claimed to pass full readability acceptance."
-  ],
+  "unresolved": [],
   "boundaries": [
     "No business/deployment/account changes",
     "No uncommitted finder JPG flow captured",
     "No real shared-folder permissions or production database checked",
     "Folder preview only, target not chosen and creation not performed",
     "Responsive desktop browser crops are not mobile device compatibility certification"
+  ],
+  "revision_task_id": "detail-v2-20261104-pixelflow-r1",
+  "accepted_scope_adjustments": [
+    "Real text-only ratio groups; no thumbnail/collapse expectation",
+    "Seven natural-height mobile crops at 900px width; no contain padding",
+    "Independent real rule/result/download crops",
+    "Actual horizontal scroll to directory final names"
+  ],
+  "limitations": [
+    "Ratio crop retains primary ratio/count/size; secondary control right edges excluded",
+    "Desktop overview final page readability remains for coordinator",
+    "No phone certification, real shared-directory permission or production database verification",
+    "Directory target not chosen; creation not executed"
   ]
 }

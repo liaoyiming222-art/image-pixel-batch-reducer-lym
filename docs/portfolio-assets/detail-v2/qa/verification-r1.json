@@ -1,0 +1,54 @@
+{
+  "revision": "detail-v2-20261104-pixelflow-r1",
+  "images": [
+    {
+      "name": "process-mobile",
+      "width": 900,
+      "height": 710,
+      "key_font_at_288": 15.61
+    },
+    {
+      "name": "process-rule-mobile",
+      "width": 900,
+      "height": 415,
+      "key_font_at_288": 26.58
+    },
+    {
+      "name": "process-download-mobile",
+      "width": 900,
+      "height": 302,
+      "key_font_at_288": 27
+    },
+    {
+      "name": "ratios-mobile",
+      "width": 900,
+      "height": 1100,
+      "key_font_at_288": 14.08
+    },
+    {
+      "name": "find-mobile",
+      "width": 900,
+      "height": 1530,
+      "key_font_at_288": 15.09
+    },
+    {
+      "name": "folders-input-mobile",
+      "width": 900,
+      "height": 2357,
+      "key_font_at_288": 16.07
+    },
+    {
+      "name": "folders-preview-mobile",
+      "width": 900,
+      "height": 1553,
+      "key_font_at_288": 16.07
+    }
+  ],
+  "desktop_hashes_unchanged": true,
+  "actual_jpeg_outputs": 3,
+  "found": 2,
+  "missing": 1,
+  "page_errors": [],
+  "folder_creation_executed": false,
+  "visual_review": "All seven 288/358px proofs inspected. Primary key text reaches approx 14px. Ratio core excludes secondary download/error-control right ends. Coordinator final page acceptance pending."
+}

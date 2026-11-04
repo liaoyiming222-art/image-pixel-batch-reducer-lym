@@ -1,58 +1,49 @@
-# PixelFlow 详情素材 v2
+# PixelFlow 详情素材 v2 · r1
 
-任务编号：`detail-v2-20261104-pixelflow`。产品 ID：`pixelflow`。制作日期：2026-11-04。
+原任务 `detail-v2-20261104-pixelflow`；补修 `detail-v2-20261104-pixelflow-r1`。产品 ID `pixelflow`。2026-11-04 制作。
 
-仓库：https://github.com/liaoyiming222-art/image-pixel-batch-reducer-lym
+仓库：[image-pixel-batch-reducer-lym](https://github.com/liaoyiming222-art/image-pixel-batch-reducer-lym)。分支：`codex/detail-v2-20261104-pixelflow`。拍摄代码：`530bdd6ebf3e42db353838db6eb5cfeabf004ece`。素材父提交：`89a31514b87ef5e7a28d1894d62760ca74d5595f`，原版继续保留在 Git 历史。用户原有业务改动、原分支及暂存区均保留。
 
-素材分支：`codex/detail-v2-20261104-pixelflow`。拍摄代码完整 SHA：`530bdd6ebf3e42db353838db6eb5cfeabf004ece`。素材分支从旧素材提交 `df191acb1dd14be2428201e100bfa31094d9bd0c` 派生，保留旧首页图和图标。
+按总控更新的清单交付 **11 张成品**：4 张桌面逐字节保留，5 张手机局部补修，新增真实处理规则及打包入口两张。七张手机图均为 900px 宽、原生裁区自然高度，无 contain 补边或比例拉伸。每张真实尺寸、SHA-256、中文 alt、来源和裁区见 [manifest.json](manifest.json)；本轮自然高度与字级检查见 [verification-r1.json](qa/verification-r1.json)。
 
-**状态：9 张规定文件已制作并保留真实证据，但 C 清单完整验收受阻，不能将本目录视为全部通过的接入素材。** 未改产品功能以补画面。缺口见下文及 [manifest.json](manifest.json) 的 `unresolved`。
+成品文件均以 `pixelflow-detail-` 开头、`.webp` 结尾：
 
-## 成品与实际取景
-
-网页负责标题、用途、来源与限制。以下均为真实界面局部，采用无损 WebP，没有营销标题、模拟按钮或手机外壳。没有修改 DOM 样式、业务状态或结果文本；只裁切和等比缩放，必要时以产品原背景色留白。
-
-| 文件 | 尺寸 | 实际内容 |
+| 场景 | 桌面 | 手机局部 |
 |---|---|---|
-| pixelflow-detail-process-desktop.webp | 1920 × 1200 | 仅转格式设置、三张实际完成队列与 ZIP 入口 |
-| pixelflow-detail-process-mobile.webp | 900 × 1200 | 队列标题与一条完整结果、单张下载；规则与全局 ZIP 入口未在此局部中 |
-| pixelflow-detail-find-desktop.webp | 1600 × 1200 | 所选静物目录、三条匹配与路径、两项找到一项未找到 |
-| pixelflow-detail-find-mobile.webp | 900 × 1200 | 三条真实匹配结果、路径与状态；清单由结果图名呈现 |
-| pixelflow-detail-ratios-desktop.webp | 1600 × 1200 | 三组实际画幅标签、数量、图名、尺寸和下载入口及检测表 |
-| pixelflow-detail-ratios-mobile.webp | 900 × 1200 | 三个真实展开组，不存在缩略图或收起状态 |
-| pixelflow-detail-folders-desktop.webp | 1600 × 1200 | 输入、设置、原名至最终名称的对应预览与创建上下文 |
-| pixelflow-detail-folders-input-mobile.webp | 900 × 750 | 明确来自桌面左侧局部：原名、静物项目前缀、已启用的编号设置 |
-| pixelflow-detail-folders-preview-mobile.webp | 900 × 1050 | 同一状态的窄屏预览，真实横向滚动到最终名称列，保留未选择目标和创建按钮 |
+| 处理 | process-desktop | process-mobile、process-rule-mobile、process-download-mobile |
+| 找图 | find-desktop | find-mobile |
+| 比例 | ratios-desktop | ratios-mobile |
+| 目录 | folders-desktop | folders-input-mobile、folders-preview-mobile |
 
-## 本次真实运行
+## 真实操作与来源
 
-原工作区在 `codex/portfolio-assets`，已有 README、查图与统计相关未提交改动及 output/tmp 等未跟踪文件，均予保留。本轮将锁定代码用 `git archive` 导出到独立临时目录，依赖复用现有 node_modules，服务只监听 127.0.0.1:5187。浏览器使用独立无头 Chrome 进程和新上下文，没有连接或覆盖用户浏览器会话。
+继续使用本批自制静物插画输入及 SVG 原稿（`samples/`）：1200×1200、1600×900、900×1200。作者为 Codex，原创陶瓶、茶杯、纸张与果实插画，无外部媒体、隐私内容或生成服务。这些是工具输入，不是 PixelFlow 生成结果，也不冒充照片。
 
-三张新静物样图由本任务用 SVG 自行绘制：绿陶瓶、茶杯、纸张和果实的统一静物插画。作者为 Codex，本轮原创，无外部素材、隐私内容或生成服务。它们是工具输入，**不是 PixelFlow 的生图结果或真实照片**。SVG 源及 PNG 位于 `samples/`，分别为 1200×1200、1600×900、900×1200；逐文件散列见 manifest resources。
+在原隔离代码目录启动锁定版本，使用独立无头 Chrome 新进程与上下文，没有连接或覆盖用户浏览器会话。相同输入重新实际完成仅转格式；`outputs/converted-r1.zip` 内三张 JPEG 与首轮实际下载输出逐字节相同。不将样本压缩率当平均性能。
 
-实测仅转格式：三张 PNG 全部转为 JPEG，通过产品“下载全部”取得 `outputs/converted.zip`；已解包保存实际三张 JPEG，并记录尺寸、字节与 SHA-256。未将样本压缩率当平均性能宣传。
+同一虚构“静物项目”目录只含 square、wide 两张输入，清单加入不存在的 missing 图，重新检索实际得到两项找到、一项未找到，未执行查图下载。实际形成 1:1、16:9、3:4 三个文字组，各一张，没有缩略图或折叠控件。
 
-真实目录 `静物项目` 只含 square、wide 两张输入。图名清单增加不存在的 `pf-still-missing.png`，实际得到两项找到、一项未找到。未进行查图下载，也未混入工作区未提交的查图转 JPG 行为。
+目录原名“方图、横图、竖图”，前缀“静物项目-”，自动编号勾选、起始编号 1、编号位数 3，预览“静物项目-001-方图”等。输入和预览来自同一设置状态。预览通过真实横滚取最终名称列，保留未选目标提示及创建入口；未选择目标、未执行创建。
 
-同组输入实际形成 1:1、16:9、3:4 三组，均为一张；详见 `sources/run-report.json`。普通文件夹工具输入“方图、横图、竖图”，前缀“静物项目-”，启用三位自动编号，真实预览为“静物项目-001-方图”等三项。未选择目标目录、未执行创建，两张目录手机素材来源于同一设置状态。
+## 本轮取景与可读性
 
-## 完整验收的具体缺口
+七张手机图使用原生布局连续区域，原生浏览器 zoom 保持 100%，视口 300/270 CSS px，DPR3 仅改善栅格质量。字号提升来自更紧的实际裁区，未修改 DOM/CSS、文字或结果，没有拼装新界面。
 
-1. 锁定版的比例分组不显示缩略图，也没有展开/收起控件。因此无法实拍 C 中“缩略图形状差别”或“其他组收起”的画面；交付保留实际文字分组，不伪造控件。
-2. 压缩窄屏规则面板、队列和固定全局 ZIP 栏分处较长界面，不能在所定 3:4 局部同时保留并达到字级目标。手机成品保留一条完整结果和单张下载；规则和 ZIP 由桌面实拍证明。
-3. 普通目录表在锁定版窄屏下仍有 1120px 最小宽度。手机预览通过真实滚动显示最终名称列，原名称在另一张输入素材中；输入素材明确使用桌面局部，没有伪装为不存在的窄屏排布。
-4. 在 288/358 CSS px 宽等比展示时，若干文件名、路径和设置小字仍低于约 14px 的目标。已保留全部目标宽度校验图于 `qa/`；不能用导出更高像素宣称可读性达标。本批没有扩大为业务功能开发。
+- 结果只取第一张文件名、元信息、完成状态与实际 JPG 结果，移除队列工具栏。
+- 规则与打包入口是同次状态的两个独立真实按钮局部，网页顺序说明，不合成 UI。
+- 查图保留连续三项文件名、完整相对路径与找到/未找到状态。
+- 分组保留三个连续文字组的比例、数量及完整尺寸；右侧次要下载按钮和误差标签尾部不在核心裁区内，不声称完整展示次要控件。
+- 目录输入来自真正窄布局，完整保留原名及实际启用设置，没有桌面右侧半列；预览明确为实际横滚后的最终名称列。
 
-需要总控根据这些事实决定是否接受本次真实局部，或调整任务单构图范围；这不属于产品失败或功能修复请求。本轮文件数、尺寸、无损格式、真实运行与散列校验通过，**完整 C 视觉验收未通过**。
+全部 288/358px 校样已查看。关键文字按真实字号和裁区换算，在 288px 下至少约 14px，358px 下更大；数值、自然尺寸及 DOM 度量见 `qa/verification-r1.json` 和 `sources/r1/capture.json`。成品应完整自然高度展示，不使用 cover 裁切。源素材制作检查通过，最终网页视觉复验仍由总控完成；四张桌面是保留的总览，不宣称最终页面字号已经验收。
 
-## 复现与校验
+## 复现与边界
 
-需要项目依赖以及 Playwright、Sharp、JSZip、Chrome；延用上层 `runtime.cjs` 依赖查找器，可用 `PORTFOLIO_NODE_MODULES` 指向独立工具依赖目录。所有交付引用均为相对路径，没有外站热链或硬编码本机绝对路径。
+需要 Chrome、项目依赖以及 Playwright/Sharp/JSZip；依赖查找延用上层 `runtime.cjs`，可设置 `PORTFOLIO_NODE_MODULES`。所有媒体引用相对路径，无硬编码本机路径或外站热链。
 
-1. 在隔离目录检出/解包拍摄代码 SHA，安装项目依赖，运行 `npm run dev -- --port 5187 --strictPort`。不得用原工作区未提交代码替换锁定基线。
-2. 在素材所在仓库根运行 `node docs/portfolio-assets/detail-v2/make-samples.cjs`。
-3. 运行 `node docs/portfolio-assets/detail-v2/capture.cjs`，仅连接该隔离服务；可用 `PORTFOLIO_APP_URL` 更改地址。
-4. 运行 `node docs/portfolio-assets/detail-v2/render.cjs`，按保存的 CSS 坐标与 DPR2 取真实局部，等比导出无损图。
-5. 运行 `node docs/portfolio-assets/detail-v2/verify.cjs`，核对九个文件尺寸、VP8L 无损编码和三张真实 JPEG，生成目标宽度 QA 与 manifest。
+1. 在隔离目录解包/检出拍摄代码 SHA，运行 `npm run dev -- --port 5187 --strictPort`。
+2. 使用随附原始输入，运行 `node docs/portfolio-assets/detail-v2/capture.cjs`（r1 入口；对应 `capture-r1.cjs`），可用 `PORTFOLIO_APP_URL` 指定服务。
+3. 运行 `node docs/portfolio-assets/detail-v2/render.cjs`（对应 `render-r1.cjs`），仅按原生比例生成七张手机图，不改桌面。
+4. 运行 `node docs/portfolio-assets/detail-v2/verify.cjs`，核对 11 图、无损编码、桌面不变及三张真实 JPEG，并更新校样与 manifest。
 
-源截图与执行记录在 `sources/`；成品图不包含文案覆盖。字体采用 Windows 微软雅黑，浏览器与字体版本不同可能改变精确像素，接入以提交内的成品及散列为准。窄屏截图不构成手机真机兼容性验收。共享目录权限、线上匿名统计、生产数据库、部署和账号未测试或修改；本地处理指文件内容，不能描述成完全无任何网络请求。
+原始证据继续保留；本轮截图、裁区、字号在 `sources/r1/`。没有真机兼容性验收、真实共享权限、线上匿名统计或数据库测试。未改业务、部署或账号权限；文件本地处理不表示完全没有网络请求。目录始终仅预览。源素材提交 SHA 在最终回执给出，不循环写入本提交文件。

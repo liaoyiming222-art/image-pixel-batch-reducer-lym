@@ -1,0 +1,560 @@
+{
+  "revision": "detail-v2-20261104-pixelflow-r1",
+  "code_sha": "530bdd6ebf3e42db353838db6eb5cfeabf004ece",
+  "errors": [],
+  "frames": [
+    {
+      "name": "process-mobile",
+      "selector": ".task-main:first",
+      "crop_css_px": {
+        "x": 83,
+        "y": 1010.09375,
+        "width": 166,
+        "height": 131
+      },
+      "viewport": {
+        "width": 300,
+        "height": 2200
+      },
+      "dpr": 3,
+      "native_browser_zoom": 1,
+      "text": "pf-still-square.png\n97.6 KB\n1200 × 1200\n最近比例 1:1\n处理完成\n已转为 JPG\n新尺寸 1200 × 1200\n新大小 40.7 KB\n减少 58.3%",
+      "metrics": [
+        {
+          "tag": "DIV",
+          "text": "pf-still-square.png97.6 KB1200 × 1200最近比例 1:1处理完成已转为 JPG新尺寸 1200 × 1200新大小 40.7 KB减少 58.3%",
+          "font_px": 16,
+          "bounds": {
+            "width": 166,
+            "height": 131
+          }
+        },
+        {
+          "tag": "H3",
+          "text": "pf-still-square.png",
+          "font_px": 11,
+          "bounds": {
+            "width": 166,
+            "height": 15
+          }
+        },
+        {
+          "tag": "DIV",
+          "text": "已转为 JPG新尺寸 1200 × 1200新大小 40.7 KB减少 58.3%",
+          "font_px": 9,
+          "bounds": {
+            "width": 166,
+            "height": 33
+          }
+        },
+        {
+          "tag": "SPAN",
+          "text": "新尺寸 1200 × 1200",
+          "font_px": 9,
+          "bounds": {
+            "width": 83.9375,
+            "height": 12
+          }
+        },
+        {
+          "tag": "SPAN",
+          "text": "新大小 40.7 KB",
+          "font_px": 9,
+          "bounds": {
+            "width": 61.703125,
+            "height": 12
+          }
+        }
+      ]
+    },
+    {
+      "name": "process-rule-mobile",
+      "selector": ".mode-field label + real active button core",
+      "crop_css_px": {
+        "x": 26,
+        "y": 375.09375,
+        "width": 130,
+        "height": 60
+      },
+      "viewport": {
+        "width": 300,
+        "height": 2200
+      },
+      "dpr": 3,
+      "native_browser_zoom": 1,
+      "text": "仅转格式",
+      "metrics": [
+        {
+          "tag": "BUTTON",
+          "text": "仅转格式",
+          "font_px": 11,
+          "bounds": {
+            "width": 127,
+            "height": 35
+          }
+        }
+      ]
+    },
+    {
+      "name": "process-download-mobile",
+      "selector": "button:下载全部",
+      "crop_css_px": {
+        "x": 18,
+        "y": 2137.5,
+        "width": 128,
+        "height": 43
+      },
+      "viewport": {
+        "width": 300,
+        "height": 2200
+      },
+      "dpr": 3,
+      "native_browser_zoom": 1,
+      "text": "下载全部",
+      "metrics": [
+        {
+          "tag": "BUTTON",
+          "text": "下载全部",
+          "font_px": 11,
+          "bounds": {
+            "width": 128,
+            "height": 43
+          }
+        }
+      ]
+    },
+    {
+      "name": "ratios-mobile",
+      "selector": ".ratio-group-grid (real continuous groups)",
+      "crop_css_px": {
+        "x": 17,
+        "y": 669.09375,
+        "width": 225,
+        "height": 275
+      },
+      "viewport": {
+        "width": 270,
+        "height": 2200
+      },
+      "dpr": 3,
+      "native_browser_zoom": 1,
+      "text": "1:1\n1 张\n下载本组\npf-still-square.png\n1200 × 1200\n0.00%\n16:9\n1 张\n下载本组\npf-still-wide.png\n1600 × 900\n0.00%\n3:4\n1 张\n下载本组\npf-still-tall.png\n900 × 1200\n0.00%",
+      "metrics": [
+        {
+          "tag": "DIV",
+          "text": "1:11 张下载本组pf-still-square.png1200 × 12000.00%16:91 张下载本组pf-still-wide.png1600 × 9000.00%3:41 张下载本组pf",
+          "font_px": 16,
+          "bounds": {
+            "width": 262,
+            "height": 275
+          }
+        },
+        {
+          "tag": "SPAN",
+          "text": "1 张",
+          "font_px": 11,
+          "bounds": {
+            "width": 20.71875,
+            "height": 15
+          }
+        },
+        {
+          "tag": "SMALL",
+          "text": "1200 × 1200",
+          "font_px": 11,
+          "bounds": {
+            "width": 66.296875,
+            "height": 15
+          }
+        },
+        {
+          "tag": "SPAN",
+          "text": "1 张",
+          "font_px": 11,
+          "bounds": {
+            "width": 20.71875,
+            "height": 15
+          }
+        },
+        {
+          "tag": "SMALL",
+          "text": "1600 × 900",
+          "font_px": 11,
+          "bounds": {
+            "width": 59.84375,
+            "height": 15
+          }
+        },
+        {
+          "tag": "SPAN",
+          "text": "1 张",
+          "font_px": 11,
+          "bounds": {
+            "width": 20.71875,
+            "height": 15
+          }
+        },
+        {
+          "tag": "SMALL",
+          "text": "900 × 1200",
+          "font_px": 11,
+          "bounds": {
+            "width": 59.84375,
+            "height": 15
+          }
+        }
+      ]
+    },
+    {
+      "name": "find-mobile",
+      "selector": ".finder-table continuous three rows, text/path/status core",
+      "crop_css_px": {
+        "x": 53,
+        "y": 1562.734375,
+        "width": 210,
+        "height": 357.78125
+      },
+      "viewport": {
+        "width": 270,
+        "height": 2200
+      },
+      "dpr": 3,
+      "native_browser_zoom": 1,
+      "text": "静物项目/pf-still-square.png\n已找到\n静物项目/pf-still-wide.png\n已找到\n可修改图名后重新查找\n未找到",
+      "metrics": [
+        {
+          "tag": "DIV",
+          "text": "下载图名 · 可修改匹配图片 / 相对路径状态移除图名静物项目/pf-still-square.png已找到静物项目/pf-still-wide.png已找到可修改图名后重新查找未找到",
+          "font_px": 16,
+          "bounds": {
+            "width": 262,
+            "height": 357.78125
+          }
+        },
+        {
+          "tag": "INPUT",
+          "text": "on",
+          "font_px": 12,
+          "bounds": {
+            "width": 16,
+            "height": 16
+          }
+        },
+        {
+          "tag": "INPUT",
+          "text": "pf-still-square.png",
+          "font_px": 12,
+          "bounds": {
+            "width": 166,
+            "height": 34
+          }
+        },
+        {
+          "tag": "SPAN",
+          "text": "静物项目/pf-still-square.png",
+          "font_px": 12,
+          "bounds": {
+            "width": 158.171875,
+            "height": 16
+          }
+        },
+        {
+          "tag": "SPAN",
+          "text": "已找到",
+          "font_px": 11,
+          "bounds": {
+            "width": 51,
+            "height": 25
+          }
+        },
+        {
+          "tag": "INPUT",
+          "text": "on",
+          "font_px": 12,
+          "bounds": {
+            "width": 16,
+            "height": 16
+          }
+        },
+        {
+          "tag": "INPUT",
+          "text": "pf-still-wide.png",
+          "font_px": 12,
+          "bounds": {
+            "width": 166,
+            "height": 34
+          }
+        },
+        {
+          "tag": "SPAN",
+          "text": "静物项目/pf-still-wide.png",
+          "font_px": 12,
+          "bounds": {
+            "width": 146.84375,
+            "height": 16
+          }
+        },
+        {
+          "tag": "SPAN",
+          "text": "已找到",
+          "font_px": 11,
+          "bounds": {
+            "width": 51,
+            "height": 25
+          }
+        },
+        {
+          "tag": "INPUT",
+          "text": "on",
+          "font_px": 12,
+          "bounds": {
+            "width": 16,
+            "height": 16
+          }
+        },
+        {
+          "tag": "INPUT",
+          "text": "pf-still-missing.png",
+          "font_px": 12,
+          "bounds": {
+            "width": 166,
+            "height": 34
+          }
+        },
+        {
+          "tag": "SPAN",
+          "text": "未找到",
+          "font_px": 11,
+          "bounds": {
+            "width": 51,
+            "height": 25
+          }
+        }
+      ]
+    },
+    {
+      "name": "folders-input-mobile",
+      "selector": ".normal-folder-page textarea through .normal-rules, continuous core",
+      "crop_css_px": {
+        "x": 5,
+        "y": 558.890625,
+        "width": 215,
+        "height": 563
+      },
+      "viewport": {
+        "width": 270,
+        "height": 2200
+      },
+      "dpr": 3,
+      "native_browser_zoom": 1,
+      "text": "输入文件夹名称\n从剪贴板粘贴\n生成预览\n清空\n每行一个名称，支持从 Excel/WPS 粘贴\n设置命名规则\n统一前缀\n统一后缀\n自动编号\n起始编号\n编号位数\n\n创建前会自动清理 Windows 文件夹名称中的非法字符，并检查重复名称。\n\n预览并创建 已生成 3 个\n原名称\t最终文件夹名称\t状态\n方图\t\t待创建\n横图\t\t待创建\n竖图\t\t待创建\n尚未选择目标文件夹\n选择目标文件夹\n批量创建文件夹",
+      "metrics": [
+        {
+          "tag": "DIV",
+          "text": "文件夹批量创建批量创建文件夹，统一添加前缀、后缀和编号。AIGC 专用普通文件夹工具输入文件夹名称从剪贴板粘贴生成预览清空每行一个名称，支持从 Excel/WPS 粘贴方图\n横图\n竖图设置命名规则统一",
+          "font_px": 16,
+          "bounds": {
+            "width": 296,
+            "height": 1205
+          }
+        },
+        {
+          "tag": "LABEL",
+          "text": "统一前缀",
+          "font_px": 12,
+          "bounds": {
+            "width": 266,
+            "height": 60
+          }
+        },
+        {
+          "tag": "INPUT",
+          "text": "静物项目-",
+          "font_px": 12,
+          "bounds": {
+            "width": 266,
+            "height": 38
+          }
+        },
+        {
+          "tag": "LABEL",
+          "text": "统一后缀",
+          "font_px": 12,
+          "bounds": {
+            "width": 266,
+            "height": 60
+          }
+        },
+        {
+          "tag": "INPUT",
+          "text": "",
+          "font_px": 12,
+          "bounds": {
+            "width": 266,
+            "height": 38
+          }
+        },
+        {
+          "tag": "LABEL",
+          "text": " 自动编号",
+          "font_px": 12,
+          "bounds": {
+            "width": 266,
+            "height": 38
+          }
+        },
+        {
+          "tag": "INPUT",
+          "text": "on",
+          "font_px": 12,
+          "bounds": {
+            "width": 13,
+            "height": 13
+          }
+        },
+        {
+          "tag": "LABEL",
+          "text": "起始编号",
+          "font_px": 12,
+          "bounds": {
+            "width": 266,
+            "height": 60
+          }
+        },
+        {
+          "tag": "INPUT",
+          "text": "1",
+          "font_px": 12,
+          "bounds": {
+            "width": 266,
+            "height": 38
+          }
+        },
+        {
+          "tag": "LABEL",
+          "text": "编号位数",
+          "font_px": 12,
+          "bounds": {
+            "width": 266,
+            "height": 60
+          }
+        },
+        {
+          "tag": "INPUT",
+          "text": "3",
+          "font_px": 12,
+          "bounds": {
+            "width": 266,
+            "height": 38
+          }
+        },
+        {
+          "tag": "SMALL",
+          "text": "已生成 3 个",
+          "font_px": 12,
+          "bounds": {
+            "width": 60.75,
+            "height": 16
+          }
+        },
+        {
+          "tag": "INPUT",
+          "text": "静物项目-001-方图",
+          "font_px": 12,
+          "bounds": {
+            "width": 497.1875,
+            "height": 34
+          }
+        },
+        {
+          "tag": "INPUT",
+          "text": "静物项目-002-横图",
+          "font_px": 12,
+          "bounds": {
+            "width": 497.1875,
+            "height": 34
+          }
+        },
+        {
+          "tag": "INPUT",
+          "text": "静物项目-003-竖图",
+          "font_px": 12,
+          "bounds": {
+            "width": 497.1875,
+            "height": 34
+          }
+        }
+      ]
+    },
+    {
+      "name": "folders-preview-mobile",
+      "selector": ".folder-card preview; real horizontal scrollLeft=380",
+      "crop_css_px": {
+        "x": 4,
+        "y": 1206.890625,
+        "width": 215,
+        "height": 371
+      },
+      "viewport": {
+        "width": 270,
+        "height": 2200
+      },
+      "dpr": 3,
+      "native_browser_zoom": 1,
+      "text": "预览并创建 已生成 3 个\n原名称\t最终文件夹名称\t状态\n方图\t\t待创建\n横图\t\t待创建\n竖图\t\t待创建\n尚未选择目标文件夹\n选择目标文件夹\n批量创建文件夹",
+      "metrics": [
+        {
+          "tag": "SECTION",
+          "text": "预览并创建 已生成 3 个原名称最终文件夹名称状态方图待创建横图待创建竖图待创建尚未选择目标文件夹选择目标文件夹批量创建文件夹",
+          "font_px": 16,
+          "bounds": {
+            "width": 296,
+            "height": 395
+          }
+        },
+        {
+          "tag": "SMALL",
+          "text": "已生成 3 个",
+          "font_px": 12,
+          "bounds": {
+            "width": 60.75,
+            "height": 16
+          }
+        },
+        {
+          "tag": "INPUT",
+          "text": "静物项目-001-方图",
+          "font_px": 12,
+          "bounds": {
+            "width": 497.1875,
+            "height": 34
+          }
+        },
+        {
+          "tag": "INPUT",
+          "text": "静物项目-002-横图",
+          "font_px": 12,
+          "bounds": {
+            "width": 497.1875,
+            "height": 34
+          }
+        },
+        {
+          "tag": "INPUT",
+          "text": "静物项目-003-竖图",
+          "font_px": 12,
+          "bounds": {
+            "width": 497.1875,
+            "height": 34
+          }
+        }
+      ]
+    }
+  ],
+  "folder_creation_executed": false,
+  "notes": [
+    "native 100% zoom; tighter actual core crops, DPR 3 only for raster quality",
+    "all seven mobile outputs use source natural aspect ratio; no contain padding",
+    "same three supplied still-life inputs; fresh browser context"
+  ]
+}
