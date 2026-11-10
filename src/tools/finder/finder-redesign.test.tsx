@@ -5,7 +5,7 @@ import { ImageFinder } from './ImageFinder'
 afterEach(cleanup)
 it('switches between names and pictures without the removed text input', () => {
   render(<ImageFinder />)
-  expect(screen.getByRole('heading', { name: '查找图片' })).toBeInTheDocument()
+  expect(screen.getByRole('heading', { name: '检索打包图片' })).toBeInTheDocument()
   expect(screen.queryByText('粘贴文字')).not.toBeInTheDocument()
   fireEvent.click(screen.getByRole('tab', { name: /按图片查找/ }))
   expect(screen.getByLabelText('参考图片或表格')).toHaveAttribute('multiple')

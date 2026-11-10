@@ -68,7 +68,7 @@ export function SimilaritySearch({ files, scope }: { files: ImageEntry[]; scope:
       const selected = new Map<string, ImageEntry>()
       hits.forEach(hit => { const entry = hit.options.find(option => option.entry.id === hit.selected)?.entry; if (entry) selected.set(entry.id, entry) })
       const blob = await createArchive([...selected.values()], (_, text) => setStatus(text))
-      const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = '查找图片-原图.zip'; a.click(); setTimeout(() => URL.revokeObjectURL(url), 60000)
+      const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = '检索打包图片-原图.zip'; a.click(); setTimeout(() => URL.revokeObjectURL(url), 60000)
       setStatus(`已打包 ${selected.size} 张原图，保留原格式。`)
     } catch (error) { setStatus(error instanceof Error ? error.message : '下载失败，请重试。') }
     finally { setBusy(false) }

@@ -15,7 +15,7 @@ function selectSource(name: string, read = vi.fn()) {
 }
 it('lets users import names, find pictures and keep the workspace when switching tools', async () => {
   render(<App />)
-  fireEvent.click(screen.getAllByRole('button', { name: '查找图片' })[0])
+  fireEvent.click(screen.getByRole('button', { name: '检索打包图片' }))
   await requestNames('产品图\n不存在的图片')
   fireEvent.click(screen.getByRole('button', { name: '选择图片文件夹' }))
   const read = selectSource('产品图.png')
@@ -26,7 +26,7 @@ it('lets users import names, find pictures and keep the workspace when switching
   expect(screen.getByRole('checkbox', { name: '下载 不存在的图片' })).toBeDisabled()
   expect(screen.getByText('1 张图片已选中')).toBeInTheDocument()
   fireEvent.click(screen.getByRole('button', { name: /^首页$/ }))
-  fireEvent.click(screen.getAllByRole('button', { name: '查找图片' })[0])
+  fireEvent.click(screen.getByRole('button', { name: '检索打包图片' }))
   expect(screen.getByRole('checkbox', { name: '下载 产品图' })).toBeChecked()
   expect(screen.getByLabelText('修改图名 产品图')).toHaveValue('产品图')
   delete (window as Window & { showDirectoryPicker?: unknown }).showDirectoryPicker

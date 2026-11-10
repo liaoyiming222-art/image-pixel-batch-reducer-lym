@@ -144,7 +144,7 @@ export function ImageFinder() {
     try {
       const blob = await createArchive(selected, (percent, status) => setProgress({ percent, text: status }), true)
       const url = URL.createObjectURL(blob); const link = document.createElement('a')
-      link.href = url; link.download = `按图名查找_${new Date().toLocaleDateString('sv-SE')}.zip`
+      link.href = url; link.download = `检索打包图片-按名称_${new Date().toLocaleDateString('sv-SE')}.zip`
       link.click(); window.setTimeout(() => URL.revokeObjectURL(url), 60000)
       setNotice(`已完成图片压缩并生成压缩包，共 ${selected.length} 张 JPG 图片。`)
     } catch (error) {
@@ -163,7 +163,7 @@ export function ImageFinder() {
   })
 
   return <main className="finder-page">
-    <section className="tool-intro"><div className="tool-intro-icon"><Search /></div><div><h1>查找图片</h1><p>按图片找原图，或按名称找文件。批量添加目录，统一检索和下载。</p></div></section>
+    <section className="tool-intro"><div className="tool-intro-icon"><Search /></div><div><h1>检索打包图片</h1><p>按图片找原图，或按名称找文件。批量添加目录，统一检索和下载。</p></div></section>
     <div className="finder-mode-switch" role="tablist" aria-label="查找方式"><button role="tab" aria-selected={mode === 'excel'} onClick={() => setMode('excel')}>按名称查找<span>导入 Excel 图名清单</span></button><button role="tab" aria-selected={mode === 'image'} onClick={() => setMode('image')}>按图片查找<span>图片、截图或 Excel 内嵌图片</span></button></div>
     {mode === 'excel' && <section className="finder-card">
       <div className="finder-heading"><div><FileSpreadsheet size={19} /><h2>导入图名清单</h2></div></div>
