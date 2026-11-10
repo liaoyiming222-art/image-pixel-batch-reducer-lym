@@ -2,6 +2,7 @@ import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/re
 import { afterEach, expect, it, vi } from 'vitest'
 import '@testing-library/jest-dom/vitest'
 import App from '../../App'
+import * as model from './model'
 import { ImageFinder } from './ImageFinder'
 
 afterEach(() => { cleanup(); vi.unstubAllGlobals(); delete (window as Window & { showDirectoryPicker?: unknown }).showDirectoryPicker })
@@ -12,39 +13,35 @@ function selectSource(name: string, read = vi.fn()) {
   fireEvent.change(screen.getByLabelText('共享图片文件夹'), { target: { files: [file] } })
   return read
 }
-it('lets users paste names, find pictures and keep the workspace when switching tools', async () => {
+it('lets users import names, find pictures and keep the workspace when switching tools', async () => {
   render(<App />)
-  fireEvent.click(screen.getAllByRole('button', { name: '按名称查找图片' })[0])
-  fireEvent.click(screen.getByRole('tab', { name: '粘贴文字' }))
-  fireEvent.change(screen.getByRole('textbox', { name: '图名文字' }), { target: { value: '产品图\n不存在的图片' } })
-  fireEvent.click(screen.getByRole('button', { name: '提取图名' }))
+  fireEvent.click(screen.getAllByRole('button', { name: '查找图片' })[0])
+  await requestNames('产品图\n不存在的图片')
   fireEvent.click(screen.getByRole('button', { name: '选择图片文件夹' }))
   const read = selectSource('产品图.png')
   await waitFor(() => expect(screen.getByText('共享目录')).toBeInTheDocument())
   expect(read).not.toHaveBeenCalled()
-  fireEvent.click(screen.getByRole('button', { name: '查找图片' }))
+  fireEvent.click(screen.getAllByRole('button', { name: '查找图片' }).slice(-1)[0])
   expect(screen.getByRole('checkbox', { name: '下载 产品图' })).toBeChecked()
   expect(screen.getByRole('checkbox', { name: '下载 不存在的图片' })).toBeDisabled()
   expect(screen.getByText('1 张图片已选中')).toBeInTheDocument()
   fireEvent.click(screen.getByRole('button', { name: /^首页$/ }))
-  fireEvent.click(screen.getAllByRole('button', { name: '按名称查找图片' })[0])
+  fireEvent.click(screen.getAllByRole('button', { name: '查找图片' })[0])
   expect(screen.getByRole('checkbox', { name: '下载 产品图' })).toBeChecked()
-  expect(screen.getByRole('textbox', { name: '图名文字' })).toHaveValue('产品图\n不存在的图片')
+  expect(screen.getByLabelText('修改图名 产品图')).toHaveValue('产品图')
   delete (window as Window & { showDirectoryPicker?: unknown }).showDirectoryPicker
 })
 
 it('keeps failed shared-file reads visible and lets the user exclude them', async () => {
   render(<ImageFinder />)
-  fireEvent.click(screen.getByRole('tab', { name: '粘贴文字' }))
-  fireEvent.change(screen.getByRole('textbox', { name: '图名文字' }), { target: { value: '读取失败图.png' } })
-  fireEvent.click(screen.getByRole('button', { name: '提取图名' }))
+  await requestNames('读取失败图.png')
   fireEvent.click(screen.getByRole('button', { name: '选择图片文件夹' }))
   selectSource('读取失败图.png', vi.fn().mockRejectedValue(new Error('network share disconnected')))
   await waitFor(() => expect(screen.getByText('共享目录')).toBeInTheDocument())
-  fireEvent.click(screen.getByRole('button', { name: '查找图片' }))
+  fireEvent.click(screen.getAllByRole('button', { name: '查找图片' }).slice(-1)[0])
   fireEvent.click(screen.getByRole('button', { name: '打包下载' }))
   await waitFor(() => expect(screen.getByText('1 张图片无法读取，未生成压缩包。')).toBeInTheDocument())
-  expect(screen.getByText('无法读取图片，请检查共享连接或权限后重试，也可取消勾选。')).toBeInTheDocument()
+  expect(screen.getByText('图片读取或压缩失败，请检查文件格式、共享连接或权限后重试，也可取消勾选。')).toBeInTheDocument()
   fireEvent.click(screen.getByRole('checkbox', { name: '下载 读取失败图.png' }))
   expect(screen.getByRole('button', { name: '重试打包下载' })).toBeDisabled()
 })
@@ -79,18 +76,20 @@ async function addDirectory(files: File[], expectedLabel: string) {
   fireEvent.change(screen.getByLabelText('共享图片文件夹'), { target: { files } })
   await waitFor(() => expect(screen.getByRole('button', { name: `移除目录 ${expectedLabel}` })).toBeEnabled())
 }
-function requestNames(text: string) {
-  fireEvent.click(screen.getByRole('tab', { name: '粘贴文字' }))
-  fireEvent.change(screen.getByRole('textbox', { name: '图名文字' }), { target: { value: text } })
-  fireEvent.click(screen.getByRole('button', { name: '提取图名' }))
+async function requestNames(text: string) {
+  vi.spyOn(model, 'readWorkbook').mockResolvedValueOnce([{ name: '图名', rows: [['图名称'], ...text.split('\n').map(name => [name])] }])
+  const file = new File([], 'names.xlsx')
+  Object.defineProperty(file, 'arrayBuffer', { value: async () => new ArrayBuffer(0) })
+  fireEvent.change(screen.getByLabelText('上传 Excel 文件'), { target: { files: [file] } })
+  await waitFor(() => expect(screen.getByLabelText('修改图名 ' + text.split('\n')[0])).toBeInTheDocument())
 }
 
 it('accumulates directories, refreshes ambiguous matches and removes stale choices when a source is removed', async () => {
   render(<ImageFinder />)
-  requestNames('产品图\n独有图片')
+  await requestNames('产品图\n独有图片')
   const first = directoryFiles('目录甲', ['原图/产品图.png', '独有图片.jpg'])
   await addDirectory(first, '目录甲')
-  fireEvent.click(screen.getByRole('button', { name: '查找图片' }))
+  fireEvent.click(screen.getAllByRole('button', { name: '查找图片' }).slice(-1)[0])
   expect(screen.getByText('2 张图片已选中')).toBeInTheDocument()
   const second = directoryFiles('目录乙', ['原图/产品图.png'])
   await addDirectory(second, '目录乙')
@@ -129,8 +128,8 @@ it('asks before adding an identical directory manifest and can retain distinct s
   fireEvent.click(screen.getByRole('button', { name: '仍然添加' }))
   expect(screen.getByRole('button', { name: '移除目录 修图 (2)' })).toBeInTheDocument()
   expect(screen.getByText('2 个目录 · 2 张图片')).toBeInTheDocument()
-  requestNames('产品图')
-  fireEvent.click(screen.getByRole('button', { name: '查找图片' }))
+  await requestNames('产品图')
+  fireEvent.click(screen.getAllByRole('button', { name: '查找图片' }).slice(-1)[0])
   const options = (screen.getByRole('combobox', { name: '为 产品图 选择图片' }) as HTMLSelectElement).options
   expect(Array.from(options).map(option => option.text)).toEqual(['多个同名文件，请选择', '修图/原图/产品图.png', '修图 (2)/原图/产品图.png'])
 })
@@ -147,3 +146,5 @@ it('preserves existing sources when an added directory contains no images or sca
   expect(screen.queryByRole('button', { name: '移除目录 取消目录' })).not.toBeInTheDocument()
   expect(screen.getByRole('button', { name: '移除目录 已添加' })).toBeEnabled()
 })
+
+

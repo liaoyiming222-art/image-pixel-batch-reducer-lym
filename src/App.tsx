@@ -277,7 +277,7 @@ const tools = [
   { key: 'compress' as const, title: '快速图片压缩', description: '转换 JPG，控制文件大小与最长边。', icon: ImageDown, color: 'blue' },
   { key: 'inspect' as const, title: '比例检测与分组', description: '读取图片尺寸，按画幅比例整理下载。', icon: BarChart3, color: 'purple' },
   { key: 'folders' as const, title: '文件夹批量处理', description: '批量创建文件夹，统一处理名称与规则。', icon: FolderPlus, color: 'green' },
-  { key: 'finder' as const, title: '按名称查找图片', description: '导入图名清单，查找共享目录并打包下载。', icon: Search, color: 'blue' },
+  { key: 'finder' as const, title: '查找图片', description: '按名称或参考图片批量查找，打包下载原图。', icon: Search, color: 'blue' },
 ]
 
 function SuiteHome({ onOpen }: { onOpen: (tool: ToolKey) => void }) {
