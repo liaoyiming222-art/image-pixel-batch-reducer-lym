@@ -1,4 +1,5 @@
 import JSZip from 'jszip'
+import { resizeToTarget } from '../../imageProcessor'
 import { archivePath, isImageName, type ImageEntry } from './model'
 
 export interface ReadFileHandle { kind: 'file'; name: string; getFile: () => Promise<File> }
@@ -38,17 +39,21 @@ export function entriesFromFiles(files: File[], source?: { id: string; label: st
 export class ImageReadFailure extends Error {
   constructor(public failures: Record<string, string>) { super(`${Object.keys(failures).length} 张图片无法读取，未生成压缩包。`) }
 }
-export async function createArchive(files: ImageEntry[], onProgress: (percent: number, text: string) => void) {
+export async function createArchive(files: ImageEntry[], onProgress: (percent: number, text: string) => void, compress = false) {
   const zip = new JSZip(); const used = new Set<string>(); const failures: Record<string, string> = {}
   for (let i = 0; i < files.length; i++) {
     const entry = files[i]
-    onProgress(Math.round(i / files.length * 70), `正在读取图片 ${i + 1} / ${files.length}`)
+    onProgress(Math.round(i / files.length * 70), `正在${compress ? '读取并压缩' : '读取'}图片 ${i + 1} / ${files.length}`)
     try {
       const file = await entry.read()
       const bytes = await file.arrayBuffer()
       if (!bytes.byteLength) throw new Error('文件为空')
-      zip.file(archivePath(entry.path, used), bytes)
-    } catch { failures[entry.id] = '无法读取图片，请检查共享连接或权限后重试，也可取消勾选。' }
+      if (compress) {
+        const result = await resizeToTarget(file, { targetBytes: 2 * 1024 * 1024, edgeLimit: 8000, edgeTarget: 8000 })
+        const output = await new Promise<ArrayBuffer>((resolve, reject) => { const reader = new FileReader(); reader.onload = () => resolve(reader.result as ArrayBuffer); reader.onerror = () => reject(reader.error); reader.readAsArrayBuffer(result.blob) })
+        zip.file(archivePath(entry.path.replace(/\.[^/.]+$/, '') + '.jpg', used), output)
+      } else zip.file(archivePath(entry.path, used), bytes)
+    } catch { failures[entry.id] = compress ? '图片读取或压缩失败，请检查文件格式、共享连接或权限后重试，也可取消勾选。' : '无法读取图片，请检查共享连接或权限后重试，也可取消勾选。' }
   }
   // Never silently download an incomplete collection.
   if (Object.keys(failures).length) throw new ImageReadFailure(failures)
