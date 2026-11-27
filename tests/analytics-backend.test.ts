@@ -112,19 +112,19 @@ describe('数据接收与累计',()=>{
   })
 })
 describe('后台权限',()=>{
-  it('未登录不可读取，正确密码签发 HttpOnly 会话',async()=>{
-    expect((await stats({request:new Request(host+'/api/admin/stats'),env})).status).toBe(401)
+  it('统计公开读取，参数管理会话仍使用 HttpOnly',async()=>{
+    expect((await stats({request:new Request(host+'/api/admin/stats'),env})).status).toBe(200)
     expect((await login({request:request('/api/admin/login',{password:'wrong'}),env})).status).toBe(401)
     const response=await login({request:request('/api/admin/login',{password:env.ADMIN_PASSWORD}),env})
     expect(response.status).toBe(200);const cookie=response.headers.get('Set-Cookie')!;expect(cookie).toContain('HttpOnly');expect(cookie).toContain('Secure')
     expect((await stats({request:new Request(host+'/api/admin/stats',{headers:{Cookie:cookie.split(';')[0]}}),env})).status).toBe(200)
     vi.setSystemTime(now+9*3600000)
-    expect((await stats({request:new Request(host+'/api/admin/stats',{headers:{Cookie:cookie.split(';')[0]}}),env})).status).toBe(401)
+    expect((await stats({request:new Request(host+'/api/admin/stats',{headers:{Cookie:cookie.split(';')[0]}}),env})).status).toBe(200)
   })
-  it('没有登录配置时拒绝开放查询',async()=>{
+  it('公开读取不依赖管理登录配置',async()=>{
     env.AUTH_SECRET=undefined
     expect((await login({request:request('/api/admin/login',{password:'any'}),env})).status).toBe(503)
-    expect((await stats({request:new Request(host+'/api/admin/stats'),env})).status).toBe(401)
+    expect((await stats({request:new Request(host+'/api/admin/stats'),env})).status).toBe(200)
   })
 })
 describe('Cloudflare 归档',()=>{
@@ -201,7 +201,7 @@ describe('节时数据和参数接口',()=>{
   for(const e of [event('time_saving_completed','app',{count:1},{task:user()}),event('time_saving_completed','finder',{count:0},{task:user()}),event('time_saving_completed','finder',{count:1}),event('inspection_finished','finder',{count:1},{task:user()})])expect(validateEvent(e,now)).toBeNull()
  })
  it('参数必须登录且同源，保存跨请求生效，站点隔离，旧编辑版本不能覆盖',async()=>{
-  expect((await timeGet({request:new Request(host+'/api/admin/time-savings'),env})).status).toBe(401)
+  expect((await timeGet({request:new Request(host+'/api/admin/time-savings'),env})).status).toBe(200)
   expect((await timePut({request:putRequest({configs:defaultTimeConfigs(),revision:0},''),env})).status).toBe(401)
   const session=await cookie(),configs=defaultTimeConfigs();configs.compress.automated=1.5
   expect((await timePut({request:putRequest({configs,revision:0},session,'pixelflow-image-tools','https://elsewhere.example'),env})).status).toBe(403)
@@ -297,7 +297,7 @@ describe('历史节时回溯与匿名用户',()=>{
   expect((await readVisitors(db,'pixelflow-image-tools','2026-10-01','2026-10-31',1)).users.find(item=>item.inspected===3)!.id).toBe(row.id)
   expect((await readVisitors(db,'pixelfloweverybody','2026-10-01','2026-10-31',1)).total).toBe(0)
   expect((await readVisitors(db,'pixelflow-image-tools','2026-10-01','2026-10-31',2)).users).toEqual([])
-  expect((await usersGet({request:new Request(host+'/api/admin/users'),env})).status).toBe(401)
+  expect((await usersGet({request:new Request(host+'/api/admin/users'),env})).status).toBe(200)
   const auth=await login({request:request('/api/admin/login',{password:'a-test-password-only'}),env}),cookie=auth.headers.get('set-cookie')!.split(';')[0]
   expect((await usersGet({request:new Request(host+'/api/admin/users?page=-1',{headers:{Cookie:cookie}}),env})).status).toBe(400)
   expect((await usersGet({request:new Request(host+'/api/admin/users?site=unknown',{headers:{Cookie:cookie}}),env})).status).toBe(404)

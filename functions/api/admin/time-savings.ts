@@ -5,7 +5,6 @@ import { readTimeSavings, readTimeSettings } from '../../lib/time-savings'
 import { validTimeConfigs } from '../../../shared/time-savings'
 const validDate=(s:string)=>/^\d{4}-\d{2}-\d{2}$/.test(s)&&Number.isFinite(Date.parse(s))&&new Date(s).toISOString().slice(0,10)===s
 export async function onRequestGet({request,env}:Context){
- if(!await authorized(request,env))return json({error:'请登录统计后台。'},401)
  const url=new URL(request.url),site=url.searchParams.get('site')||DEFAULT_SITE,start=url.searchParams.get('start')||'2000-01-01',end=url.searchParams.get('end')||'2099-12-31'
  if(site!==DEFAULT_SITE)return json({error:'站点已停用。'},404)
  if(!validDate(start)||!validDate(end)||start>end)return json({error:'日期范围不正确。'},400)

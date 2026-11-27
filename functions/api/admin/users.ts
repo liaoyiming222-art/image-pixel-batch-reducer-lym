@@ -1,9 +1,7 @@
-import {authorized} from '../../lib/auth'
 import {json,type Context} from '../../lib/db'
 import {DEFAULT_SITE,getSite} from '../../lib/sites'
 import {readVisitors} from '../../lib/visitors'
 export async function onRequestGet({request,env}:Context){
- if(!await authorized(request,env))return json({error:'请登录统计后台。'},401)
  const url=new URL(request.url),site=url.searchParams.get('site')||DEFAULT_SITE,start=url.searchParams.get('start')||'2000-01-01',end=url.searchParams.get('end')||'2099-12-31',page=Number(url.searchParams.get('page')||1)
  if(site!==DEFAULT_SITE)return json({error:'站点已停用。'},404)
  const valid=(value:string)=>/^\d{4}-\d{2}-\d{2}$/.test(value)&&Number.isFinite(Date.parse(value))&&new Date(value).toISOString().slice(0,10)===value
