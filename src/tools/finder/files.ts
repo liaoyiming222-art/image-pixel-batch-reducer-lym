@@ -39,7 +39,7 @@ export function entriesFromFiles(files: File[], source?: { id: string; label: st
 export class ImageReadFailure extends Error {
   constructor(public failures: Record<string, string>) { super(`${Object.keys(failures).length} 张图片无法读取，未生成压缩包。`) }
 }
-export async function createArchive(files: ImageEntry[], onProgress: (percent: number, text: string) => void, compress = false) {
+export async function createArchive(files: ImageEntry[], onProgress: (percent: number, text: string) => void, compress = false, report?: string) {
   const zip = new JSZip(); const used = new Set<string>(); const failures: Record<string, string> = {}
   for (let i = 0; i < files.length; i++) {
     const entry = files[i]
@@ -57,6 +57,7 @@ export async function createArchive(files: ImageEntry[], onProgress: (percent: n
   }
   // Never silently download an incomplete collection.
   if (Object.keys(failures).length) throw new ImageReadFailure(failures)
+  if(report) zip.file('检索清单.csv', '\uFEFF' + report)
   return zip.generateAsync({ type: 'blob', compression: 'STORE' }, progress =>
     onProgress(Math.round(70 + progress.percent * .3), '正在生成压缩包'))
 }

@@ -7,6 +7,7 @@ export async function onRequestPost({ request, env }: Context) {
   if (!env.DB) return json({ error: 'not_configured' }, 503)
   let site:Site|null
   try{site=await env.DB.prepare('SELECT * FROM sites WHERE host=? AND enabled=1').bind(host).first<Site>()}catch{return json({error:'not_configured'},503)}
+  if(site&&site.id!==DEFAULT_SITE)return json({error:'site_disabled'},403)
   if(!site)return json({error:'site_origin'},403)
   if (!request.headers.get('Content-Type')?.startsWith('application/json')) return json({ error: 'content_type' }, 415)
   const declared = Number(request.headers.get('Content-Length') || 0)

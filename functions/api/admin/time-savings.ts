@@ -7,6 +7,7 @@ const validDate=(s:string)=>/^\d{4}-\d{2}-\d{2}$/.test(s)&&Number.isFinite(Date.
 export async function onRequestGet({request,env}:Context){
  if(!await authorized(request,env))return json({error:'请登录统计后台。'},401)
  const url=new URL(request.url),site=url.searchParams.get('site')||DEFAULT_SITE,start=url.searchParams.get('start')||'2000-01-01',end=url.searchParams.get('end')||'2099-12-31'
+ if(site!==DEFAULT_SITE)return json({error:'站点已停用。'},404)
  if(!validDate(start)||!validDate(end)||start>end)return json({error:'日期范围不正确。'},400)
  try{return json(await readTimeSavings(env.DB,site,start,end))}catch(e){return json({error:e instanceof Error&&e.message==='Unknown site'?'站点不存在。':'节时统计读取失败，请检查数据库配置。'},e instanceof Error&&e.message==='Unknown site'?404:503)}
 }
@@ -23,6 +24,7 @@ export async function onRequestPut({request,env}:Context){
   let body:{configs?:unknown;revision?:unknown};try{body=JSON.parse(new TextDecoder().decode(bytes))}catch{return json({error:'参数格式不正确。'},400)}
   if(!body||typeof body!=='object'||Array.isArray(body)||Object.keys(body).some(k=>!['configs','revision'].includes(k))||!validTimeConfigs(body.configs)||!Number.isSafeInteger(body.revision)||Number(body.revision)<0)return json({error:'请输入 0–86400 秒、最多一位小数的流程时间。'},400)
   const site=new URL(request.url).searchParams.get('site')||DEFAULT_SITE
+  if(site!==DEFAULT_SITE)return json({error:'站点已停用。'},404)
   if(!await getSite(env.DB,site))return json({error:'站点不存在。'},404)
   // An older open dashboard may still submit four tools. Preserve the new setting.
   const configs={...body.configs,compressionDetection:body.configs.compressionDetection||(await readTimeSettings(env.DB,site)).configs.compressionDetection}

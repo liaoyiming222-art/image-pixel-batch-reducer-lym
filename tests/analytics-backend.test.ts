@@ -30,19 +30,13 @@ beforeEach(()=>{
 })
 afterEach(()=>{sqlite.close();vi.useRealTimers();vi.restoreAllMocks()})
 describe('数据接收与累计',()=>{
-  it('同一事件编号在两个站点分别去重，用户和累计不混算',async()=>{
-    const e=event(),secondary={...e,site:'pixelfloweverybody'}
-    await ingest({request:request('/api/events',{events:[e]}),env})
-    const secondaryRequest=()=>new Request('https://pixelfloweverybody.pages.dev/api/events',{method:'POST',headers:{Origin:'https://pixelfloweverybody.pages.dev','Content-Type':'application/json'},body:JSON.stringify({events:[secondary]})})
-    expect((await ingest({request:secondaryRequest(),env})).status).toBe(200)
-    await ingest({request:secondaryRequest(),env})
-    const a=await readStats(db,'2026-10-01','2026-10-31'),b=await readStats(db,'2026-10-01','2026-10-31','pixelfloweverybody')
-    expect(a.totals).toMatchObject({pageviews:1,users:1,sessions:1})
-    expect(b.totals).toMatchObject({pageviews:1,users:1,sessions:1})
-    expect(b.dashboard.siteLaunch).toBe('2026-10-10')
-    expect(b.dashboard.lifetime.traffic).toMatchObject({pageviews:1,visits:1})
-    expect(sqlite.prepare('SELECT COUNT(*) AS n FROM events').get().n).toBe(2)
-    expect(sqlite.prepare('SELECT COUNT(*) AS n FROM users').get().n).toBe(2)
+  it('主站事件去重，已停用站点拒绝写入',async()=>{
+    const e=event();await ingest({request:request('/api/events',{events:[e,e]}),env})
+    const origin='https://pixelfloweverybody.pages.dev'
+    const response=await ingest({request:new Request(origin+'/api/events',{method:'POST',headers:{Origin:origin,'Content-Type':'application/json'},body:JSON.stringify({events:[{...e,site:'pixelfloweverybody'}]})}),env})
+    expect(response.status).toBe(403)
+    expect((await readLiveStats(db,'2026-10-01','2026-10-31')).lifetime.pageviews).toBe(1)
+    expect(sqlite.prepare('SELECT COUNT(*) AS n FROM events').get().n).toBe(1)
   })
   it('拒绝站点伪装和第二站点缺少标识，旧主站点请求仍兼容',async()=>{
     const origin='https://pixelfloweverybody.pages.dev'
@@ -56,7 +50,8 @@ describe('数据接收与累计',()=>{
     await ingest({request:request('/api/events',{events:[a]}),env})
     const b={...event('inspection_finished','inspect',{count:7},{task:user()}),site:'pixelfloweverybody'}
     const origin='https://pixelfloweverybody.pages.dev'
-    await ingest({request:new Request(origin+'/api/events',{method:'POST',headers:{Origin:origin,'Content-Type':'application/json'},body:JSON.stringify({events:[b]})}),env})
+    // Archived records remain readable internally; public ingestion is now disabled.
+    sqlite.prepare('INSERT INTO events(id,user_id,session_id,task_id,name,tool,occurred_at,received_at,day,version,props,effective,site_id) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)').run(b.id,b.user,b.session,b.task,b.name,b.tool,b.at,b.at,'2026-10-10',b.version,JSON.stringify(b.props),1,b.site)
     await summarizeDay(db,'2026-10-10');await summarizeDay(db,'2026-10-10','pixelfloweverybody')
     expect(sqlite.prepare("SELECT value FROM site_daily_metrics WHERE site_id='pixelflow-image-tools' AND metric='inspected'").get().value).toBe(3)
     expect(sqlite.prepare("SELECT value FROM site_daily_metrics WHERE site_id='pixelfloweverybody' AND metric='inspected'").get().value).toBe(7)
@@ -160,11 +155,11 @@ describe('实时精简统计',()=>{
   insert(now,'page_view',{},'pixelfloweverybody')
   sqlite.prepare('INSERT INTO site_cloudflare_daily VALUES(?,?,?,?,?,?)').run('pixelflow-image-tools','2026-10-10','cloudflare_web_analytics','pageviews',9999,now)
   const a=await readLiveStats(db,'2026-10-01','2026-10-31')
-  expect(a.lifetime).toEqual({pageviews:2,processed:3,inspected:8,folders:0})
-  expect(a.period).toEqual({pageviews:1,processed:3,inspected:8,folders:0})
-  expect(a.monthly).toEqual([{month:'2026-10',pageviews:1,processed:3,inspected:8,folders:0},{month:'2026-09',pageviews:1,processed:0,inspected:0,folders:0}])
+  expect(a.lifetime).toEqual({matched:0,pageviews:2,processed:3,inspected:8,folders:0})
+  expect(a.period).toEqual({matched:0,pageviews:1,processed:3,inspected:8,folders:0})
+  expect(a.monthly).toEqual([{month:'2026-10',matched:0,pageviews:1,processed:3,inspected:8,folders:0},{month:'2026-09',matched:0,pageviews:1,processed:0,inspected:0,folders:0}])
   expect((await readLiveStats(db,'2026-10-10','2026-10-10')).lifetime).toEqual(a.lifetime)
-  expect((await readLiveStats(db,'2026-10-01','2026-10-31','pixelfloweverybody')).lifetime).toEqual({pageviews:1,processed:0,inspected:0,folders:0})
+  expect((await readLiveStats(db,'2026-10-01','2026-10-31','pixelfloweverybody')).lifetime).toEqual({matched:0,pageviews:1,processed:0,inspected:0,folders:0})
  })
  it('没有事件的站点保持未采集状态，不继承其他站点历史',async()=>{
   await ingest({request:request('/api/events',{events:[event()]}),env})
@@ -177,7 +172,7 @@ it('压缩入口检测被接收，重试不重复增加检测数量',async()=>{
  const e=event('inspection_finished','compress',{count:3},{task:user()})
  expect((await ingest({request:request('/api/events',{events:[e]}),env})).status).toBe(200)
  await ingest({request:request('/api/events',{events:[e]}),env})
- expect((await readLiveStats(db,'2026-10-01','2026-10-31')).lifetime).toEqual({pageviews:0,processed:0,inspected:3,folders:0})
+ expect((await readLiveStats(db,'2026-10-01','2026-10-31')).lifetime).toEqual({matched:0,pageviews:0,processed:0,inspected:3,folders:0})
 })
 
 it('新建目录只汇总实际成功的主子目录，去重、日期和站点隔离保持一致',async()=>{
@@ -307,4 +302,19 @@ describe('历史节时回溯与匿名用户',()=>{
   expect((await usersGet({request:new Request(host+'/api/admin/users?page=-1',{headers:{Cookie:cookie}}),env})).status).toBe(400)
   expect((await usersGet({request:new Request(host+'/api/admin/users?site=unknown',{headers:{Cookie:cookie}}),env})).status).toBe(404)
  })
+})
+it('查图成功数量进入累计期间和月度，重复事件只计一次',async()=>{
+ const e=event('time_saving_completed','finder',{count:5},{task:user()})
+ for(const value of [e,e])expect((await ingest({request:request('/api/events',{events:[value]}),env})).status).toBe(200)
+ const stats=await readLiveStats(db,'2026-10-01','2026-10-31')
+ expect(stats.lifetime.matched).toBe(5)
+ expect(stats.period.matched).toBe(5)
+ expect(stats.monthly.find(m=>m.month==='2026-10')?.matched).toBe(5)
+ expect((await readLiveStats(db,'2026-10-01','2026-10-31','pixelfloweverybody')).lifetime.matched).toBe(0)
+})
+
+it('停用站点不能通过旧管理地址查询或修改参数，主站列表只返回一个产品',async()=>{
+ const auth=await login({request:request('/api/admin/login',{password:env.ADMIN_PASSWORD}),env}),cookie=auth.headers.get('set-cookie')!.split(';')[0]
+ for(const [handler,path] of [[stats,'stats'],[usersGet,'users'],[timeGet,'time-savings']] as const){expect((await handler({request:new Request(host+'/api/admin/'+path+'?site=pixelfloweverybody',{headers:{Cookie:cookie}}),env})).status).toBe(404)}
+ const result=await readLiveStats(db,'2026-10-01','2026-10-31');expect(result.sites.map(s=>s.id)).toEqual(['pixelflow-image-tools'])
 })

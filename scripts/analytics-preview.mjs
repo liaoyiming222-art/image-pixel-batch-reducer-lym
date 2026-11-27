@@ -6,6 +6,20 @@ const dist = path.join(root, 'dist')
 const upstream = 'https://pixelflow-image-tools.pages.dev'
 const port = Number(process.env.PIXELFLOW_PREVIEW_PORT || 8788)
 const localOrigin = `http://127.0.0.1:${port}`
+let adminSession = '', sessionExpires = 0, signingIn
+async function session(force = false) {
+  if (!force && adminSession && Date.now() < sessionExpires) return adminSession
+  if (signingIn) return signingIn
+  signingIn = (async () => {
+    const { ADMIN_PASSWORD } = JSON.parse(fs.readFileSync(path.join(root, 'analytics-cloudflare.local.json'), 'utf8'))
+    const result = await fetch(upstream + '/api/admin/login', { method: 'POST', headers: { Origin: upstream, 'Content-Type': 'application/json' }, body: JSON.stringify({ password: ADMIN_PASSWORD }), signal: AbortSignal.timeout(15000), redirect: 'error' })
+    const cookie = result.headers.get('Set-Cookie')?.split(';')[0]
+    if (!result.ok || !cookie) throw new Error('Local authentication failed')
+    adminSession = cookie; sessionExpires = Date.now() + 7 * 3600000
+    return cookie
+  })()
+  try { return await signingIn } finally { signingIn = undefined }
+}
 const mime = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8', '.svg': 'image/svg+xml', '.png': 'image/png', '.ico': 'image/x-icon' }
 const server = http.createServer(async (request, response) => {
   response.setHeader('Cache-Control', 'no-store')
@@ -15,18 +29,17 @@ const server = http.createServer(async (request, response) => {
     if (request.headers.host !== `127.0.0.1:${port}`) { response.writeHead(403); response.end('Host not allowed'); return }
     if (url.pathname.startsWith('/api/')) {
       // Only the protected admin API is proxied. Local previews never write product events.
-      if (!url.pathname.startsWith('/api/admin/')) { response.writeHead(403); response.end('{"error":"本地预览不采集业务事件。"}'); return }
+      if (!['/api/admin/stats','/api/admin/users','/api/admin/time-savings'].includes(url.pathname)) { response.writeHead(403); response.end('{"error":"此接口未开放。"}'); return }
       if (request.headers.origin && request.headers.origin !== localOrigin) { response.writeHead(403); response.end('Origin not allowed'); return }
       const chunks = []; let length = 0
       for await (const chunk of request) { length += chunk.length; if (length > 4096) { response.writeHead(413); response.end('Body too large'); return } chunks.push(chunk) }
       const headers = { Origin: upstream, 'Content-Type': 'application/json' }
-      if (request.headers.cookie) headers.Cookie = request.headers.cookie
-      const remote = await fetch(upstream + url.pathname + url.search, { method: request.method, headers, body: ['POST','PUT','PATCH'].includes(request.method) ? Buffer.concat(chunks) : undefined, signal: AbortSignal.timeout(30000), redirect: 'error' })
+      headers.Cookie = await session()
+      const forward = () => fetch(upstream + url.pathname + url.search, { method: request.method, headers, body: ['POST','PUT','PATCH'].includes(request.method) ? Buffer.concat(chunks) : undefined, signal: AbortSignal.timeout(30000), redirect: 'error' })
+      let remote = await forward()
+      if (remote.status === 401) { await remote.arrayBuffer(); headers.Cookie = await session(true); remote = await forward() }
       response.statusCode = remote.status
       response.setHeader('Content-Type', remote.headers.get('Content-Type') || 'application/json; charset=utf-8')
-      const cookie = remote.headers.get('Set-Cookie')
-      // The HTTPS upstream keeps Secure cookies; only this loopback HTTP preview omits Secure.
-      if (cookie) response.setHeader('Set-Cookie', cookie.replace(/;\s*Secure/ig, ''))
       response.end(Buffer.from(await remote.arrayBuffer())); return
     }
     if (!['GET','HEAD'].includes(request.method)) { response.writeHead(405); response.end('Method not allowed'); return }
@@ -44,4 +57,4 @@ server.on('error', error => {
   console.error(error.code === 'EADDRINUSE' ? `预览已在 ${localOrigin}/admin 运行，无需重复启动。` : error.message)
   process.exitCode = error.code === 'EADDRINUSE' ? 0 : 1
 })
-server.listen(port, '127.0.0.1', () => console.log(`统计预览：${localOrigin}/admin\n使用原后台密码登录，数据来自线上 D1。`))
+server.listen(port, '127.0.0.1', () => console.log(`统计预览：${localOrigin}/admin\n本地自动验证，数据来自线上 D1。`))

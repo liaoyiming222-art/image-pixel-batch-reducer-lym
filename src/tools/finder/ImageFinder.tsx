@@ -1,221 +1,53 @@
+import { useMemo, useRef, useState } from 'react'
+import { FolderOpen, Search, Trash2, Info, FileSpreadsheet } from 'lucide-react'
 import { SimilaritySearch } from './SimilaritySearch'
 import { PathQueue } from './PathQueue'
-import { useEffect, useMemo, useRef, useState } from 'react'
-import { Archive, CheckCircle2, FileSpreadsheet, FolderOpen, ListChecks, Loader2, Search, Trash2, Info } from 'lucide-react'
-import { useTransientNotice } from '../../useTransientNotice'
-import { columnLabel, detectColumn, matchNames, prepareNames, readWorkbook, resolvedFile, selectedFiles, type ImageEntry, type MatchResult, type NameRow, type WorkbookSheet } from './model'
-import { createArchive, entriesFromFiles, ImageReadFailure } from './files'
+import { entriesFromFiles } from './files'
+import type { ImageEntry } from './model'
 import './finder.css'
-import { createTimeSavingCounter } from '../../analytics'
-
-type ResultFilter = 'all' | 'found' | 'missing' | 'choose' | 'error'
-interface PictureDirectory { id: string; label: string; signature: string; files: ImageEntry[] }
+interface Directory { id:string; label:string; signature:string; files:ImageEntry[] }
 export function ImageFinder() {
-  const [mode, setMode] = useState<'excel' | 'image'>('excel')
-  const [batchFolders, setBatchFolders] = useState(false)
-  const [sheets, setSheets] = useState<WorkbookSheet[]>([])
-  const [sheetIndex, setSheetIndex] = useState(0)
-  const [column, setColumn] = useState(0)
-  const [start, setStart] = useState(0)
-  const [excelName, setExcelName] = useState('')
-  const [excelError, setExcelError] = useState('')
-  const [rows, setRows] = useState<NameRow[]>([])
-  const [duplicates, setDuplicates] = useState(0)
-  const [directories, setDirectories] = useState<PictureDirectory[]>([])
-  const [pendingDirectory, setPendingDirectory] = useState<PictureDirectory | null>(null)
-  const files = useMemo(() => directories.flatMap(directory => directory.files), [directories])
-  const [scanned, setScanned] = useState(0)
-  const [results, setResults] = useState<MatchResult[] | null>(null)
-  const [choices, setChoices] = useState<Record<string, string>>({})
-  const [excluded, setExcluded] = useState(new Set<string>())
-  const [readErrors, setReadErrors] = useState<Record<string, string>>({})
-  const [filter, setFilter] = useState<ResultFilter>('all')
-  const [loading, setLoading] = useState(false)
-  const [scanning, setScanning] = useState(false)
-  const [packing, setPacking] = useState(false)
-  const [progress, setProgress] = useState({ percent: 0, text: '' })
-  const [notice, setNotice] = useTransientNotice()
-  const excelInput = useRef<HTMLInputElement>(null)
-  const folderInput = useRef<HTMLInputElement>(null)
-  const scanToken = useRef(0)
-  const savingCounter = useRef(createTimeSavingCounter('finder'))
-  useEffect(() => { savingCounter.current.record((results ?? []).flatMap(result => { const file=resolvedFile(result,choices[result.row.id]);return file?[file.id]:[] })) },[results,choices])
-  const operation = useRef(false)
-  const busy = loading || scanning || packing
-  const sheet = sheets[sheetIndex]
-  const columnCount = sheet ? sheet.rows.reduce((max, row) => Math.max(max, row.length), 1) : 1
-  const resultById = useMemo(() => new Map((results ?? []).map(result => [result.row.id, result])), [results])
-  const selected = useMemo(() => selectedFiles(results ?? [], choices, excluded), [results, choices, excluded])
-  const counts = useMemo(() => {
-    const value = { found: 0, missing: 0, choose: 0, error: 0 }
-    for (const result of results ?? []) {
-      const file = resolvedFile(result, choices[result.row.id])
-      if (file) { value.found++; if (readErrors[file.id]) value.error++ }
-      else if (result.matches.length > 1 || result.candidates.length) value.choose++
-      else value.missing++
-    }
-    return value
-  }, [results, choices, readErrors])
-
-  const resetResults = () => { setResults(null); setChoices({}); setExcluded(new Set()); setReadErrors({}); setFilter('all') }
-  const updateDirectories = (next: PictureDirectory[]) => {
-    setDirectories(next)
-    resetResults()
-    if (results) setResults(matchNames(rows, next.flatMap(directory => directory.files)))
-    setNotice(results ? '图片目录已更新，匹配结果已刷新，请重新核对下载选择。' : '图片目录已更新，可在所有已添加目录中查找。')
-  }
-  const setNames = (names: string[]) => {
-    savingCounter.current.reset()
-    const prepared = prepareNames(names)
-    setRows(prepared.rows); setDuplicates(prepared.duplicates); resetResults()
-    if (prepared.duplicates) setNotice(`已合并 ${prepared.duplicates} 个重复图名，保留 ${prepared.rows.length} 个。`)
-    if (!prepared.rows.length) setNotice('没有提取到图名，请检查输入文字或所选列。')
-  }
-  const extractSheet = (value: WorkbookSheet, col: number, from: number) => setNames(value.rows.slice(from).map(row => row[col] ?? ''))
-  const uploadExcel = async (file: File) => {
-    if (operation.current) return
-    if (!/\.xlsx$/i.test(file.name)) { setExcelError('请上传 .xlsx 文件；旧版 .xls 请另存为 .xlsx，再重新上传。'); return }
-    operation.current = true; setLoading(true); setExcelError('')
-    try {
-      let data: ArrayBuffer
-      try { data = await file.arrayBuffer() }
-      catch { throw new Error('无法读取所选文件，请确认文件仍可访问后重新选择。') }
-      const workbook = await readWorkbook(data)
-      if (!workbook.some(item => item.rows.some(row => row.some(value => value.trim())))) throw new Error('表格没有可读取的文字内容，请选择其他表格或切换到按图片查找。')
-      const first = workbook.findIndex(item => detectColumn(item.rows).start > 0)
-      const index = first < 0 ? workbook.findIndex(item => item.rows.some(row => row.some(value => value.trim()))) : first; const detected = detectColumn(workbook[index].rows)
-      setSheets(workbook); setSheetIndex(index); setColumn(detected.column); setStart(detected.start); setExcelName(file.name)
-      extractSheet(workbook[index], detected.column, detected.start)
-    } catch (error) { setExcelError(`${error instanceof Error ? error.message : '读取表格失败，请重试。'}${rows.length ? ' 当前图名清单已保留。' : ''}`) }
-    finally { operation.current = false; setLoading(false) }
-  }
-  const chooseFolder = () => {
-    if (operation.current || pendingDirectory) return
-    folderInput.current?.click()
-  }
-  const useFolderFiles = async (list: FileList) => {
-    if (operation.current) return
-    const all = Array.from(list); const entries: ImageEntry[] = []
-    if (!all.length || pendingDirectory) return
-    const name = all[0]?.webkitRelativePath.split('/')[0] || '所选文件夹'
-    let label = name; let suffix = 2
-    const usedLabels = new Set(directories.map(directory => directory.label.normalize('NFC').toLowerCase()))
-    while (usedLabels.has(label.normalize('NFC').toLowerCase())) label = `${name} (${suffix++})`
-    const source = { id: crypto.randomUUID(), label }
-    operation.current = true; setScanning(true); setScanned(0)
-    const token = ++scanToken.current
-    try {
-      for (let index = 0; index < all.length; index += 500) {
-        await new Promise<void>(resolve => window.setTimeout(resolve, 0))
-        if (token !== scanToken.current) return
-        entries.push(...entriesFromFiles(all.slice(index, index + 500), source))
-        setScanned(Math.min(index + 500, all.length))
-      }
-      if (!entries.length) { setNotice('所选目录中没有找到支持的图片，已添加目录保持不变。'); return }
-      // A directory upload does not expose the absolute path. Identical metadata is
-      // only a duplicate candidate, not proof that two shared directories are the same.
-      const signature = JSON.stringify(all.map(file => [file.webkitRelativePath || file.name, file.size, file.lastModified]).sort((a, b) => String(a[0]).localeCompare(String(b[0]))))
-      const directory = { ...source, signature, files: entries }
-      if (batchFolders) {
-        const groups = new Map<string, ImageEntry[]>()
-        for (const entry of entries) {
-          const parts = entry.path.split('/'); const group = parts.length > 2 ? parts[1] : '根目录图片'
-          const groupFiles = groups.get(group)
-          if (groupFiles) groupFiles.push(entry)
-          else groups.set(group, [entry])
-        }
-        updateDirectories([...directories, ...[...groups].map(([group, files]) => ({ id: crypto.randomUUID(), label: label + '/' + group, signature: signature + group, files }))])
-      }
-      else if (directories.some(item => item.signature === signature)) setPendingDirectory(directory)
-      else updateDirectories([...directories, directory])
-    } catch { setNotice('无法建立图片清单，请重新选择目录。已添加目录保持不变。') }
-    finally { operation.current = false; setScanning(false) }
-  }
-  const find = () => {
-    if (!rows.length || !files.length || busy) return
-    const prepared = prepareNames(rows.map(row => row.name))
-    setRows(prepared.rows); setDuplicates(current => current + prepared.duplicates)
-    setResults(matchNames(prepared.rows, files)); setChoices({}); setExcluded(new Set()); setReadErrors({}); setFilter('all')
-    if (prepared.duplicates) setNotice(`已合并 ${prepared.duplicates} 个重复图名。`)
-  }
-  const download = async () => {
-    if (operation.current || !selected.length) return
-    operation.current = true; setPacking(true); setReadErrors({}); setProgress({ percent: 0, text: '准备读取图片' })
-    try {
-      const blob = await createArchive(selected, (percent, status) => setProgress({ percent, text: status }), true)
-      const url = URL.createObjectURL(blob); const link = document.createElement('a')
-      link.href = url; link.download = `按图名查找_${new Date().toLocaleDateString('sv-SE')}.zip`
-      link.click(); window.setTimeout(() => URL.revokeObjectURL(url), 60000)
-      setNotice(`已完成图片压缩并生成压缩包，共 ${selected.length} 张 JPG 图片。`)
-    } catch (error) {
-      if (error instanceof ImageReadFailure) { setReadErrors(error.failures); setFilter('error') }
-      setNotice(error instanceof Error ? error.message : '打包失败，请重试。')
-    } finally { operation.current = false; setPacking(false) }
-  }
-  const visible = rows.filter(row => {
-    if (!results || filter === 'all') return true
-    const result = resultById.get(row.id)!
-    const file = resolvedFile(result, choices[row.id])
-    if (filter === 'error') return !!file && !!readErrors[file.id]
-    if (filter === 'found') return !!file
-    if (filter === 'choose') return !file && (result.matches.length > 1 || result.candidates.length > 0)
-    return !file && result.matches.length === 0 && result.candidates.length === 0
-  })
-
-  return <main className="finder-page">
-    <section className="tool-intro"><div className="tool-intro-icon"><Search /></div><div><h1>查找图片</h1><p>按图片找原图，或按名称找文件。批量添加目录，统一检索和下载。</p></div></section>
-    <div className="finder-mode-switch" role="tablist" aria-label="查找方式"><button role="tab" aria-selected={mode === 'excel'} onClick={() => setMode('excel')}>按名称查找<span>导入 Excel 图名清单</span></button><button role="tab" aria-selected={mode === 'image'} onClick={() => setMode('image')}>按图片查找<span>图片、截图或 Excel 内嵌图片</span></button></div>
-    {mode === 'excel' && <section className="finder-card">
-      <div className="finder-heading"><div><FileSpreadsheet size={19} /><h2>导入图名清单</h2></div></div>
-      <input ref={excelInput} type="file" accept=".xlsx" hidden aria-label="上传 Excel 文件" onChange={event => { const file = event.target.files?.[0]; if (file) void uploadExcel(file); event.target.value = '' }} />
-      <>
-        <div className="finder-excel-drop" onDragOver={event => event.preventDefault()} onDrop={event => { event.preventDefault(); if (!busy && event.dataTransfer.files[0]) void uploadExcel(event.dataTransfer.files[0]) }}>
-          <div className="finder-file-icon"><FileSpreadsheet size={25} /></div><div><strong>{loading ? '正在读取表格…' : excelName || '选择或拖入 Excel 表格'}</strong><p>读取 .xlsx 中的图名文字，自动识别“图名称”列。</p></div>
-          <button className="finder-button primary" disabled={busy} onClick={() => excelInput.current?.click()}>{loading ? <Loader2 size={16} className="spin" /> : <FileSpreadsheet size={16} />}{excelName ? '更换表格' : '选择表格'}</button>
-        </div>
-        {excelError && <p className="finder-error" role="alert">{excelError}</p>}
-        {sheet && <div className="finder-columns"><label>工作表<select aria-label="工作表" value={sheetIndex} disabled={busy} onChange={event => { const index = +event.target.value; const detected = detectColumn(sheets[index].rows); setSheetIndex(index); setColumn(detected.column); setStart(detected.start); extractSheet(sheets[index], detected.column, detected.start) }}>{sheets.map((item, index) => <option key={index} value={index}>{item.name}</option>)}</select></label>
-          <label>图名所在列<select aria-label="图名所在列" value={column} disabled={busy} onChange={event => { setColumn(+event.target.value); extractSheet(sheet, +event.target.value, start) }}>{Array.from({ length: columnCount }, (_, index) => <option key={index} value={index}>{columnLabel(index)} 列{sheet.rows[Math.max(0, start - 1)]?.[index] ? ` · ${sheet.rows[Math.max(0, start - 1)][index].slice(0, 28)}` : ''}</option>)}</select></label>
-          <label>从第几行提取<input aria-label="从第几行提取" type="number" min="1" max={Math.max(1, sheet.rows.length)} value={start + 1} disabled={busy} onChange={event => { const value = Math.max(0, (+event.target.value || 1) - 1); setStart(value); extractSheet(sheet, column, value) }} /></label></div>}
-      </>
-      {!!rows.length && <p className="finder-help">清单中有 <b>{rows.length}</b> 个图名{duplicates ? `，已合并 ${duplicates} 个重复项` : ''}。更换输入并提取后会替换当前清单。</p>}
-    </section>}
-    <section className="finder-card finder-library">
-      <div className="finder-heading"><div><FolderOpen size={19} /><h2>图片目录{directories.length ? <small>{directories.length} 个目录 · {files.length} 张图片</small> : null}</h2></div><button className="finder-button" disabled={busy || !!pendingDirectory} onClick={() => void chooseFolder()}><FolderOpen size={16} />{directories.length ? '添加图片文件夹' : '选择图片文件夹'}</button></div>
-      <p className="finder-directory-note"><Info size={16} /><span><strong>系统提示“上传”仅表示允许本页面读取文件。</strong>图片内容不会上传到网站服务器，也不会修改或删除原文件。</span></p>
-      <input ref={folderInput} type="file" multiple hidden aria-label="共享图片文件夹" {...({ webkitdirectory: '', directory: '' } as Record<string, string>)} onChange={event => { if (event.target.files?.length) void useFolderFiles(event.target.files); event.target.value = '' }} />
-      <PathQueue busy={busy} onChoose={chooseFolder} />
-      <label className="finder-batch-option"><input type="checkbox" checked={batchFolders} disabled={busy} onChange={event => setBatchFolders(event.target.checked)} />选择上级文件夹后，批量加入其中的子文件夹</label>
-      <div className="finder-directory-guide"><p>点击“{directories.length ? '添加图片文件夹' : '选择图片文件夹'}”，在弹出窗口底部的“文件夹”输入框中粘贴路径，再点击“上传”并确认授权。</p><p>可逐个添加多个目录，统一查找各目录及其子文件夹。同名目录以编号区分；目录变动后，请重新核对匹配结果。</p></div>
-      {directories.map(directory => <div className="finder-source connected" key={directory.id}><FolderOpen size={22} /><div><strong>{directory.label}</strong><span>找到 {directory.files.length} 张图片 · {mode === 'image' ? '图片检索时读取并缓存哈希' : '仅建立名称索引，打包时才读取图片内容'}</span></div><CheckCircle2 size={20} /><button className="finder-button" aria-label={`移除目录 ${directory.label}`} disabled={busy || !!pendingDirectory} onClick={() => updateDirectories(directories.filter(item => item.id !== directory.id))}><Trash2 size={15} />移除</button></div>)}
-      {scanning ? <div className="finder-source" role="status"><Loader2 size={22} className="spin" /><div><strong>正在扫描文件名…</strong><span>已扫描 {scanned} 个文件</span></div><button className="finder-button" onClick={() => { scanToken.current++; setNotice('已请求停止扫描，已添加目录保持不变。') }}>停止扫描</button></div> : !directories.length && !pendingDirectory ? <div className="finder-source"><FolderOpen size={22} /><div><strong>尚未选择图片文件夹</strong><span>选择后将在这里显示文件夹名称和图片数量。</span></div></div> : null}
-      {pendingDirectory && <div className="finder-warning" role="region" aria-label="核对重复目录"><strong>这个目录可能已添加</strong><p>目录名称和文件清单与已添加目录相同。浏览器不会提供完整路径，若来自不同位置，可以仍然添加。</p><div className="finder-input-actions"><button className="finder-button" disabled={busy} onClick={() => setPendingDirectory(null)}>取消添加</button><button className="finder-button primary" disabled={busy} onClick={() => { updateDirectories([...directories, pendingDirectory]); setPendingDirectory(null) }}>仍然添加</button></div></div>}
-    </section>
-    {mode === 'image' && <SimilaritySearch files={files} scope={directories.map(item => item.signature).join('|')} />}
-    {mode === 'excel' && <><p className="finder-help">打包时在本地将图片转为 JPG，并按 2 MB、最长边 8000 px 压缩；保持宽高比，透明区域填白，原文件不变。</p>
-    <section className="finder-card finder-results">
-      <div className="finder-heading"><div><ListChecks size={19} /><h2>匹配结果{rows.length ? <small>{rows.length} 个图名</small> : null}</h2></div><div className="finder-input-actions"><button className="finder-button" disabled={!rows.length || busy} onClick={() => { setRows([]); savingCounter.current.reset(); setDuplicates(0); resetResults() }}><Trash2 size={15} />清空清单</button><button className="finder-button primary" disabled={!rows.length || !files.length || busy} onClick={find}><Search size={16} />{results ? '重新查找' : '查找图片'}</button></div></div>
-      {results && <div className="finder-filters" aria-label="筛选匹配结果">{([['all', '全部', rows.length], ['found', '已找到', counts.found], ['missing', '未找到', counts.missing], ['choose', '待选择', counts.choose], ['error', '读取失败', counts.error]] as const).filter(([key, , count]) => key !== 'error' || count > 0).map(([key, label, count]) => <button key={key} className={filter === key ? 'active' : ''} onClick={() => setFilter(key)}>{label}<b>{count}</b></button>)}</div>}
-      {!rows.length ? <div className="finder-empty"><Search size={30} /><strong>从一份图名清单开始</strong><p>上传图名表格，再选择图片目录。</p></div> : <>
-        <p className="finder-help">{results ? '核对文件名和相对路径。相似名称仅供选择，不会自动加入下载。' : '图名可直接修改；准备好清单与目录后，点击“查找图片”。'}</p>
-        <div className="finder-table"><table><thead><tr><th>下载</th><th>图名 · 可修改</th><th>匹配图片 / 相对路径</th><th>状态</th><th><span className="finder-sr-only">移除图名</span></th></tr></thead><tbody>{visible.map(row => {
-          const result = resultById.get(row.id)
-          const file = result && resolvedFile(result, choices[row.id])
-          const options = result ? result.matches.length ? result.matches : result.candidates : []
-          const error = file && readErrors[file.id]
-          const status = !result ? '待查找' : error ? '读取失败' : file ? '已找到' : options.length ? '待选择' : '未找到'
-          return <tr key={row.id}><td><input type="checkbox" aria-label={`下载 ${row.name}`} checked={!!file && !excluded.has(row.id)} disabled={!file || busy} onChange={event => setExcluded(current => { const next = new Set(current); if (event.target.checked) next.delete(row.id); else next.add(row.id); return next })} /></td>
-            <td><input className="finder-name-input" aria-label={`修改图名 ${row.name}`} value={row.name} disabled={busy} onChange={event => { const name = event.target.value; setRows(current => current.map(item => item.id === row.id ? { ...item, name } : item)); resetResults() }} /></td>
-            <td>{options.length > 1 || (result && !result.matches.length && options.length) ? <select aria-label={`为 ${row.name} 选择图片`} value={choices[row.id] ?? ''} disabled={busy} onChange={event => { setChoices(current => ({ ...current, [row.id]: event.target.value })); setExcluded(current => { const next = new Set(current); next.delete(row.id); return next }) }}><option value="">{result?.matches.length ? '多个同名文件，请选择' : '相似名称，请核对后选择'}</option>{options.map(option => <option key={option.id} value={option.id}>{option.path}</option>)}</select> : file ? <span className="finder-path">{file.path}</span> : <span className="finder-muted">{result ? '可修改图名后重新查找' : '等待查找'}</span>}{error && <small className="finder-error">{error}</small>}</td>
-            <td><span className={`finder-status ${status === '已找到' ? 'found' : status === '读取失败' ? 'error' : status === '待选择' ? 'choose' : ''}`}>{status}</span></td>
-            <td><button className="finder-remove" aria-label={`移除 ${row.name}`} disabled={busy} onClick={() => { setRows(current => current.filter(item => item.id !== row.id)); setResults(current => current?.filter(item => item.row.id !== row.id) ?? null) }}><Trash2 size={16} /></button></td></tr>
-        })}</tbody></table>{!visible.length && <p className="finder-no-results">此分类没有图名。</p>}</div>
-      </>}
-    </section>
-    <div className="finder-bottom">
-      {notice && <div className="finder-notice" role="status"><Info size={16} /><span>{notice}</span></div>}
-      <div className="finder-action-bar"><div><strong>{selected.length} 张图片已选中</strong><small>{packing ? progress.text : results ? '压缩后输出 JPG · 2 MB / 8000 px · 保留目录层级' : '完成查找并核对结果后，即可下载'}</small></div><button className="finder-button primary" disabled={!selected.length || busy} onClick={() => void download()}>{packing ? <Loader2 size={17} className="spin" /> : <Archive size={17} />}{packing ? `打包中 · ${progress.percent}%` : counts.error ? '重试打包下载' : '打包下载'}</button>{packing && <div className="finder-pack-progress" style={{ width: `${progress.percent}%` }} />}</div>
-    </div></>}
-  </main>
+ const [inputSlot,setInputSlot]=useState<HTMLDivElement|null>(null)
+ const [directories,setDirectories]=useState<Directory[]>([])
+ const [busy,setBusy]=useState(false)
+ const [notice,setNotice]=useState('')
+ const [scanned,setScanned]=useState(0)
+ const [pending,setPending]=useState<Directory|null>(null)
+ const folderInput=useRef<HTMLInputElement>(null)
+ const cancel=useRef(false)
+ const files=useMemo(()=>directories.flatMap(directory=>directory.files),[directories])
+ const choose=()=>{if(!busy&&!pending)folderInput.current?.click()}
+ const add=async(list:FileList)=>{
+  if(busy||pending)return
+  setBusy(true);cancel.current=false;setScanned(0)
+  try{
+   const all=Array.from(list);if(!all.length)return
+   const name=all[0].webkitRelativePath.split('/')[0]||'所选目录';let label=name;let n=2
+   while(directories.some(d=>d.label===label))label=`${name} (${n++})`
+   const id=crypto.randomUUID();const entries:ImageEntry[]=[]
+   for(let i=0;i<all.length;i+=500){await new Promise(resolve=>setTimeout(resolve,0));if(cancel.current){setNotice('已停止，已加入目录保持不变。');return}entries.push(...entriesFromFiles(all.slice(i,i+500),{id,label}));setScanned(Math.min(i+500,all.length))}
+   if(!entries.length){setNotice('所选目录中没有找到支持的图片，已加入目录保持不变。');return}
+   const signature=JSON.stringify(all.map(file=>[file.webkitRelativePath,file.size,file.lastModified]).sort())
+   const directory={id,label,signature,files:entries}
+   if(directories.some(d=>d.signature===signature)){setPending(directory);return}
+   setDirectories(current=>[...current,directory])
+   setNotice('目录已加入。若同时选择了上级目录及其子目录，请移除重叠范围，避免重复检索。')
+  }catch{setNotice('无法读取目录，请检查权限或共享连接后重试。')}finally{setBusy(false)}
+ }
+ return <main className="finder-page">
+  <section className="tool-intro"><div className="tool-intro-icon"><Search/></div><div><h1>检索打包图片</h1><p>上传一份 Excel，自动按名称或参考图片查找，核对后统一打包。</p></div></section>
+  <section className="finder-card finder-import"><div className="finder-heading"><div><FileSpreadsheet size={20}/><h2>待检索图片</h2></div></div><p className="finder-stage-description">有明确图片名时先按名称查找，其余按图片检索。只读取单元格中的名称，不识别图片内文字。</p><div ref={setInputSlot}/></section>
+  <section className="finder-card finder-library"><div className="finder-heading"><div><FolderOpen size={20}/><h2>图片目录 <small>{directories.length} 个目录 · {files.length} 张图片</small></h2></div><button className="finder-button" disabled={busy||!!pending} onClick={choose}><FolderOpen size={16}/>{directories.length?'添加图片目录':'选择图片目录'}</button></div>
+   <p className="finder-directory-note"><Info size={16}/><span><strong>系统提示“上传”仅表示允许本页面读取文件。</strong>图片内容不会上传到网站服务器，也不会修改或删除原文件。</span></p>
+   <p className="finder-directory-instructions">点击“选择图片目录”，在弹出窗口中选择文件夹，点击“上传”并确认授权。自动检索子文件夹，可继续添加多个目录。</p>
+   <input ref={folderInput} type="file" multiple hidden aria-label="共享图片文件夹" {...({webkitdirectory:'',directory:''} as Record<string,string>)} onChange={event=>{if(event.target.files?.length)void add(event.target.files);event.target.value=''}}/>
+   {!directories.length && !busy && <div className="finder-source"><FolderOpen size={22}/><div><strong>尚未选择图片目录</strong><span>选择后显示文件夹名称和图片数量。</span></div></div>}
+   {directories.map(directory=><div className="finder-source connected" key={directory.id}><FolderOpen size={20}/><div><strong>{directory.label}</strong><span>{directory.files.length} 张图片 · 已授权</span></div><button className="finder-button" disabled={busy} aria-label={`移除目录 ${directory.label}`} onClick={()=>setDirectories(current=>current.filter(item=>item.id!==directory.id))}><Trash2 size={15}/>移除</button></div>)}
+   <details className="finder-path-options"><summary>批量添加路径</summary><PathQueue busy={busy||!!pending} onChoose={choose} connected={directories.map(d=>d.label)}/><p className="finder-help">复制路径后，在选择窗口按 Ctrl+V，点击上传并确认授权。浏览器不会提供完整路径，请核对所选目录。</p></details>
+   {busy&&<p role="status">已扫描 {scanned} 个文件 <button className="finder-button" onClick={()=>{cancel.current=true}}>停止扫描</button></p>}
+   {pending&&<div className="finder-warning"><strong>这个目录可能已添加</strong><p>文件清单相同。如来自不同位置，可仍然加入。</p><button className="finder-button" onClick={()=>setPending(null)}>取消添加</button><button className="finder-button" onClick={()=>{setDirectories(current=>[...current,pending]);setPending(null)}}>仍然添加</button></div>}
+   {notice&&<p className="finder-help" role="status">{notice}</p>}
+  </section>
+  <SimilaritySearch files={files} scope="local-library-v1" inputSlot={inputSlot}/>
+ </main>
 }
-

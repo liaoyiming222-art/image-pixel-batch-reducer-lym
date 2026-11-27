@@ -51,16 +51,7 @@ export function selectedFiles(results: MatchResult[], choices: Record<string, st
   }
   return [...selected.values()]
 }
-export function archivePath(path: string, used: Set<string>) {
-  const clean = path.replace(/\\/g, '/').split('/').filter(part => part && part !== '.' && part !== '..')
-    .map(part => part.replace(/[<>:"|?*\u0000-\u001f]/g, '_')).join('/') || '图片'
-  let value = clean; let n = 2
-  while (used.has(value.toLowerCase())) {
-    const dot = clean.lastIndexOf('.'); const slash = clean.lastIndexOf('/')
-    value = dot > slash ? `${clean.slice(0, dot)} (${n++})${clean.slice(dot)}` : `${clean} (${n++})`
-  }
-  used.add(value.toLowerCase()); return value
-}
+export { archivePath } from '../../archivePaths'
 export function columnLabel(index: number) {
   let label = ''; let n = index + 1
   while (n) { n--; label = String.fromCharCode(65 + n % 26) + label; n = Math.floor(n / 26) }

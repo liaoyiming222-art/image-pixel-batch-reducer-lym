@@ -21,14 +21,27 @@ export async function imageHash(file: File) {
     const context = canvas.getContext('2d', { willReadFrequently: true })
     if (!context) throw new Error('浏览器不支持图片读取。')
     context.fillStyle = '#fff'; context.fillRect(0, 0, 17, 16)
-    context.drawImage(bitmap, 0, 0, 17, 16)
+    // Detect uniform dark screenshot rails before computing the gradient hash.
+    const probe = document.createElement('canvas'); probe.width = 128; probe.height = 128
+    const pc = probe.getContext('2d', { willReadFrequently: true })!
+    pc.drawImage(bitmap, 0, 0, 128, 128)
+    const data = pc.getImageData(0, 0, 128, 128).data
+    const darkColumn = (x: number) => {
+      let dark = 0
+      for(let y = 0; y < 128; y++) { const i = (y * 128 + x) * 4; if(Math.max(data[i], data[i+1], data[i+2]) < 65) dark++ }
+      return dark > 123
+    }
+    let left = 0, right = 127
+    while(left < 20 && darkColumn(left)) left++
+    while(right > 107 && darkColumn(right)) right--
+    context.drawImage(bitmap, left / 128 * bitmap.width, 0, (right - left + 1) / 128 * bitmap.width, bitmap.height, 0, 0, 17, 16)
     return hashPixels(context.getImageData(0, 0, 17, 16).data)
   } finally { bitmap.close() }
 }
 // IndexedDB keeps only small hashes and metadata; source images stay on the user's disk.
 async function hashDatabase() {
   return new Promise<IDBDatabase>((resolve, reject) => {
-    const request = indexedDB.open('picture-finder-hashes-v1', 1)
+    const request = indexedDB.open('picture-finder-hashes-v2', 1)
     request.onupgradeneeded = () => request.result.createObjectStore('hashes')
     request.onsuccess = () => resolve(request.result)
     request.onerror = () => reject(request.error)

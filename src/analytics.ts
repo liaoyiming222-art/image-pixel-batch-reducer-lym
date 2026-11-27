@@ -5,7 +5,7 @@ interface Event { site?:string; id: string; user: string; session: string; task:
 const USER_KEY = 'pixelflow.analytics.user.v1'
 const SESSION_KEY = 'pixelflow.analytics.session.v1'
 const QUEUE_KEY = 'pixelflow.analytics.queue.v1'
-const siteId=()=>({'pixelflow-image-tools.pages.dev':'pixelflow-image-tools','pixelfloweverybody.pages.dev':'pixelfloweverybody'} as Record<string,string>)[location.hostname]
+const siteId=()=>({'pixelflow-image-tools.pages.dev':'pixelflow-image-tools'} as Record<string,string>)[location.hostname]
 const enabled = () => { if(!import.meta.env.PROD || !siteId() || location.pathname.startsWith('/admin')) return false;try{return localStorage.getItem('pixelflow.analytics.disabled')!=='1'}catch{return true} }
 let memoryUser = ''
 let queue: Event[] = []

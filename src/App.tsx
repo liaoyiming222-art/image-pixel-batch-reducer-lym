@@ -1,5 +1,6 @@
 import { useRef, useState } from 'react'
 import JSZip from 'jszip'
+import { archivePath } from './archivePaths'
 import { Archive, BarChart3, CheckCircle2, Download, FolderOpen, FolderPlus, Home, ImageDown, ImagePlus, Lock, Play, RotateCcw, Search, Settings2, Sparkles, Trash2, XCircle, Zap } from 'lucide-react'
 import { createPreviewUrl, readImage, resizeToTarget } from './imageProcessor'
 import type { ImageTask, TaskStatus } from './types'
@@ -191,9 +192,10 @@ function CompressionTool() {
       return
     }
     const zip = new JSZip()
+    const usedPaths = new Set<string>()
     downloadable.forEach(({ task, file, name }) => {
       const folder = task.relativePath?.split('/').slice(0, -1).join('/')
-      zip.file(folder ? `${folder}/${name}` : name, file)
+      zip.file(archivePath(folder ? `${folder}/${name}` : name, usedPaths), file)
     })
     const blob = await zip.generateAsync({ type: 'blob', compression: 'DEFLATE' })
     const url = URL.createObjectURL(blob)
@@ -277,7 +279,7 @@ const tools = [
   { key: 'compress' as const, title: '快速图片压缩', description: '转换 JPG，控制文件大小与最长边。', icon: ImageDown, color: 'blue' },
   { key: 'inspect' as const, title: '比例检测与分组', description: '读取图片尺寸，按画幅比例整理下载。', icon: BarChart3, color: 'purple' },
   { key: 'folders' as const, title: '文件夹批量处理', description: '批量创建文件夹，统一处理名称与规则。', icon: FolderPlus, color: 'green' },
-  { key: 'finder' as const, title: '查找图片', description: '按名称或参考图片批量查找，打包下载原图。', icon: Search, color: 'blue' },
+  { key: 'finder' as const, title: '检索打包图片', description: '按名称或参考图片批量查找，打包下载原图。', icon: Search, color: 'blue' },
 ]
 
 function SuiteHome({ onOpen }: { onOpen: (tool: ToolKey) => void }) {
@@ -297,7 +299,7 @@ function SuiteHome({ onOpen }: { onOpen: (tool: ToolKey) => void }) {
 }
 
 export default function App() {
-  const [activeTool, setActiveTool] = useState<ToolKey>('home')
+  const [activeTool, setActiveTool] = useState<ToolKey>(() => new URLSearchParams(window.location.search).get('tool') === 'finder' ? 'finder' : 'home')
   const openTool = (tool: ToolKey) => { if (tool !== activeTool && tool !== 'home') track('tool_open', tool); setActiveTool(tool) }
   return <ImageWorkspaceProvider><div className="suite-shell"><nav className="suite-nav"><button className="suite-brand" onClick={() => openTool('home')}><img className="suite-brand-mark" src="/pixelflow.svg" width={44} height={44} alt="" /><b>PixelFlow</b><small>本地效率工具</small></button><div className="suite-nav-links"><button className={activeTool === 'home' ? 'active' : ''} onClick={() => openTool('home')}><Home size={15} />首页</button>{tools.map(tool => <button key={tool.key} className={activeTool === tool.key ? 'active' : ''} onClick={() => openTool(tool.key)}><tool.icon size={15} />{tool.title}</button>)}</div><div className="nav-local"><span/>本地运行</div></nav>
     {activeTool === 'home' && <SuiteHome onOpen={openTool} />}
@@ -307,3 +309,4 @@ export default function App() {
     <div hidden={activeTool !== 'finder'}><ImageFinder /></div>
   </div></ImageWorkspaceProvider>
 }
+
